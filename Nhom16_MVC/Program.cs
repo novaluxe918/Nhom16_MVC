@@ -1,7 +1,14 @@
+using Nhom16_MVC.Services;
+using Nhom16_MVC.Helpers;
+
+
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 builder.Services.AddControllersWithViews();
+builder.Services.AddSingleton<DatabaseService>();
+builder.Services.AddScoped<AuthService>();
+builder.Services.AddScoped<EmailHelper>();
 
 var app = builder.Build();
 
@@ -17,6 +24,7 @@ app.UseHttpsRedirection();
 app.UseStaticFiles();
 
 app.UseRouting();
+app.MapControllers();
 
 app.UseAuthorization();
 
