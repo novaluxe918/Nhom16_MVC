@@ -137,6 +137,29 @@ namespace Nhom16_MVC.Controllers.API
             return Ok(response);
         }
 
+        [HttpGet("admin/unapproved-stadiums")]
+        public async Task<IActionResult> GetUnapprovedStadiums()
+        {
+            var result = await _authService.GetUnapprovedStadiumsAsync();
+            return Ok(result);
+        }
+
+        [HttpPost("admin/approve-stadium")]
+        public async Task<IActionResult> ApproveStadium([FromBody] ApproveStadiumRequest request)
+        {
+            if (request == null || request.MaSanBong <= 0)
+            {
+                return BadRequest(new StadiumApprovalResponse { Success = false, Message = "Mã sân bóng không hợp lệ." });
+            }
+
+            var response = await _authService.ApproveStadiumAsync(request.MaSanBong);
+            if (!response.Success)
+            {
+                return BadRequest(response);
+            }
+            return Ok(response);
+        }
+
         [HttpGet("test-db")]
         public async Task<IActionResult> TestDatabase([FromServices] DatabaseService dbService)
         {

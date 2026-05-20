@@ -383,9 +383,6 @@ namespace Nhom16_MVC.Services
                 };
             }
         }
-        // ====================================================================
-        // TÍNH NĂNG: YÊU CẦU QUÊN MẬT KHẨU (HIỆU LỰC 5 PHÚT)
-        // ====================================================================
         public async Task<ForgotPasswordResponse> ForgotPasswordAsync(ForgotPasswordRequest request)
         {
             try
@@ -446,10 +443,6 @@ namespace Nhom16_MVC.Services
                 return new ForgotPasswordResponse { Success = false, Message = $"Lỗi hệ thống: {ex.Message}" };
             }
         }
-
-        // ====================================================================
-        // TÍNH NĂNG: ĐẶT LẠI MẬT KHẨU (BẤM NHIỀU LẦN THOẢI MÁI TRONG 5 PHÚT)
-        // ====================================================================
         public async Task<ResetPasswordResponse> ResetPasswordAsync(ResetPasswordRequest request)
         {
             try
@@ -520,6 +513,108 @@ namespace Nhom16_MVC.Services
             catch (Exception ex)
             {
                 return new ResetPasswordResponse { Success = false, Message = $"Lỗi hệ thống: {ex.Message}" };
+            }
+        }
+        public async Task<List<StadiumApprovalViewDto>> GetUnapprovedStadiumsAsync()
+        {
+            var stadiumMap = new Dictionary<long, StadiumApprovalViewDto>();
+            try
+            {
+                using var conn = _dbService.GetConnection();
+                await conn.OpenAsync();
+
+                var query = @"
+                    SELECT 
+                        s.masanbong, 
+                        s.tensan, 
+                        s.diachi, 
+                        s.mota, 
+                        s.hinhanh, 
+                        s.daduyet, 
+                        n.hoten,
+                        m.link
+                    FROM sanbong s
+                    JOIN nguoidung n ON s.chusan = n.manguoidung
+                    LEFT JOIN media_sanbong m ON s.masanbong = m.masanbong
+                    WHERE s.daduyet = FALSE 
+                    ORDER BY s.masanbong DESC";
+
+                using var cmd = new NpgsqlCommand(query, conn);
+                using var reader = await cmd.ExecuteReaderAsync();
+
+                while (await reader.ReadAsync())
+                {
+                    // Đọc maSanBong theo kiểu long (bigint của Postgres)
+                    long maSan = reader.GetInt64(reader.GetOrdinal("masanbong"));
+
+                    if (!stadiumMap.ContainsKey(maSan))
+                    {
+                        stadiumMap[maSan] = new StadiumApprovalViewDto
+                        {
+                            MaSanBong = (int)maSan, // Ép về int để khớp với DTO của bạn
+                            TenSan = reader["tensan"]?.ToString() ?? "",
+                            ChuSan = reader["hoten"]?.ToString() ?? "Chủ sân",
+                            DiaChi = reader["diachi"]?.ToString() ?? "",
+                            MoTa = reader["mota"]?.ToString() ?? "",
+                            HinhAnhDaiDien = reader["hinhanh"]?.ToString() ?? "",
+                            DaDuyet = false, // Chắc chắn là false vì có điều kiện WHERE s.daduyet = FALSE
+                            DanhSachHinhAnhChiTiet = new List<string>()
+                        };
+                    }
+
+                    // Đọc cột link ảnh chi tiết từ bảng media_sanbong
+                    int linkOrdinal = reader.GetOrdinal("link");
+                    if (!reader.IsDBNull(linkOrdinal))
+                    {
+                        var linkAnh = reader.GetString(linkOrdinal);
+                        if (!string.IsNullOrEmpty(linkAnh))
+                        {
+                            stadiumMap[maSan].DanhSachHinhAnhChiTiet.Add(linkAnh);
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                // Nếu có lỗi gì nó sẽ in ra ở màn hình Console của Visual Studio để mình thấy liền
+                Console.WriteLine($"[LỖI GET SÂN CHƯA DUYỆT]: {ex.Message}");
+            }
+
+            return stadiumMap.Values.ToList();
+        }
+        public async Task<StadiumApprovalResponse> ApproveStadiumAsync(int maSanBong)
+        {
+            try
+            {
+                using var conn = _dbService.GetConnection();
+                await conn.OpenAsync();
+
+                var checkQuery = "SELECT masanbong FROM sanbong WHERE masanbong = @id LIMIT 1";
+                bool isExist = false;
+                using (var checkCmd = new NpgsqlCommand(checkQuery, conn))
+                {
+                    checkCmd.Parameters.AddWithValue("@id", maSanBong);
+                    var res = await checkCmd.ExecuteScalarAsync();
+                    if (res != null) isExist = true;
+                }
+
+                if (!isExist)
+                {
+                    return new StadiumApprovalResponse { Success = false, Message = "Sân bóng này không tồn tại trên hệ thống!" };
+                }
+
+                var updateQuery = "UPDATE sanbong SET daduyet = TRUE WHERE masanbong = @id";
+                using (var updateCmd = new NpgsqlCommand(updateQuery, conn))
+                {
+                    updateCmd.Parameters.AddWithValue("@id", maSanBong);
+                    await updateCmd.ExecuteNonQueryAsync();
+                }
+
+                return new StadiumApprovalResponse { Success = true, Message = "Đã duyệt sân bóng thành công và hiển thị công khai!" };
+            }
+            catch (Exception ex)
+            {
+                return new StadiumApprovalResponse { Success = false, Message = $"Lỗi hệ thống khi duyệt sân: {ex.Message}" };
             }
         }
     }
