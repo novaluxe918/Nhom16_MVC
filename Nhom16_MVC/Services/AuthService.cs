@@ -12,16 +12,15 @@ namespace Nhom16_MVC.Services
     {
         private readonly DatabaseService _dbService;
         private readonly EmailHelper _emailHelper;
+        private readonly JwtHelper _jwtHelper;
 
-        public AuthService(DatabaseService dbService, EmailHelper emailHelper)
+        public AuthService(DatabaseService dbService, EmailHelper emailHelper, JwtHelper jwtHelper)
         {
             _dbService = dbService;
             _emailHelper = emailHelper;
+            _jwtHelper = jwtHelper;
         }
 
-        /// <summary>
-        /// Đăng ký tài khoản mới
-        /// </summary>
         public async Task<RegisterResponse> RegisterAsync(RegisterRequest request)
         {
             try
@@ -29,7 +28,6 @@ namespace Nhom16_MVC.Services
                 using var conn = _dbService.GetConnection();
                 await conn.OpenAsync();
 
-                // 1. Kiểm tra email đã tồn tại chưa
                 var checkEmailQuery = "SELECT COUNT(*) FROM nguoidung WHERE email = @email";
                 using (var checkCmd = new NpgsqlCommand(checkEmailQuery, conn))
                 {
@@ -46,7 +44,6 @@ namespace Nhom16_MVC.Services
                     }
                 }
 
-                // 2. Kiểm tra số điện thoại đã tồn tại chưa
                 var checkPhoneQuery = "SELECT COUNT(*) FROM nguoidung WHERE sodienthoai = @phone";
                 using (var checkCmd = new NpgsqlCommand(checkPhoneQuery, conn))
                 {
@@ -63,14 +60,10 @@ namespace Nhom16_MVC.Services
                     }
                 }
 
-                // 3. Hash mật khẩu
                 var hashedPassword = BCrypt.Net.BCrypt.HashPassword(request.MatKhau);
-
-                // 4. Tạo verification token (UUID)
                 var verificationToken = Guid.NewGuid().ToString();
-                var tokenExpiry = DateTime.UtcNow.AddHours(24); // Token hết hạn sau 24h
+                var tokenExpiry = DateTime.UtcNow.AddHours(24);
 
-                // 5. Insert người dùng mới vào database
                 var insertQuery = @"
                     INSERT INTO nguoidung 
                     (hoten, email, sodienthoai, matkhau, vaitro, sodutaikhoan, createdat, 
@@ -100,7 +93,6 @@ namespace Nhom16_MVC.Services
 
                     await reader.CloseAsync();
 
-                    // 6. Gửi email xác thực
                     var emailSent = await _emailHelper.SendVerificationEmailAsync(
                         email,
                         hoTen,
@@ -140,9 +132,6 @@ namespace Nhom16_MVC.Services
             }
         }
 
-        /// <summary>
-        /// Xác thực email bằng token
-        /// </summary>
         public async Task<RegisterResponse> VerifyEmailAsync(string token)
         {
             try
@@ -150,7 +139,6 @@ namespace Nhom16_MVC.Services
                 using var conn = _dbService.GetConnection();
                 await conn.OpenAsync();
 
-                // 1. Tìm user với token này
                 var findQuery = @"
                     SELECT manguoidung, hoten, email, tokenexpiry, isemailverified
                     FROM nguoidung 
@@ -178,7 +166,6 @@ namespace Nhom16_MVC.Services
 
                 await reader.CloseAsync();
 
-                // 2. Kiểm tra đã verify chưa
                 if (isEmailVerified)
                 {
                     return new RegisterResponse
@@ -188,7 +175,6 @@ namespace Nhom16_MVC.Services
                     };
                 }
 
-                // 3. Kiểm tra token hết hạn chưa
                 if (DateTime.UtcNow > tokenExpiry)
                 {
                     return new RegisterResponse
@@ -198,7 +184,6 @@ namespace Nhom16_MVC.Services
                     };
                 }
 
-                // 4. Cập nhật trạng thái verified
                 var updateQuery = @"
                     UPDATE nguoidung 
                     SET isemailverified = true, 
@@ -210,7 +195,6 @@ namespace Nhom16_MVC.Services
                 updateCmd.Parameters.AddWithValue("@id", maNguoiDung);
                 await updateCmd.ExecuteNonQueryAsync();
 
-                // 5. Gửi email chào mừng
                 await _emailHelper.SendWelcomeEmailAsync(email, hoTen);
 
                 return new RegisterResponse
@@ -234,9 +218,6 @@ namespace Nhom16_MVC.Services
             }
         }
 
-        /// <summary>
-        /// Gửi lại email xác thực
-        /// </summary>
         public async Task<RegisterResponse> ResendVerificationEmailAsync(string email)
         {
             try
@@ -244,7 +225,6 @@ namespace Nhom16_MVC.Services
                 using var conn = _dbService.GetConnection();
                 await conn.OpenAsync();
 
-                // 1. Tìm user với email
                 var findQuery = @"
                     SELECT manguoidung, hoten, isemailverified, verificationtoken
                     FROM nguoidung 
@@ -271,7 +251,6 @@ namespace Nhom16_MVC.Services
 
                 await reader.CloseAsync();
 
-                // 2. Kiểm tra đã verify chưa
                 if (isEmailVerified)
                 {
                     return new RegisterResponse
@@ -281,7 +260,6 @@ namespace Nhom16_MVC.Services
                     };
                 }
 
-                // 3. Tạo token mới
                 var newToken = Guid.NewGuid().ToString();
                 var newExpiry = DateTime.UtcNow.AddHours(24);
 
@@ -297,7 +275,6 @@ namespace Nhom16_MVC.Services
                 updateCmd.Parameters.AddWithValue("@id", maNguoiDung);
                 await updateCmd.ExecuteNonQueryAsync();
 
-                // 4. Gửi lại email
                 var emailSent = await _emailHelper.SendVerificationEmailAsync(email, hoTen, newToken);
 
                 return new RegisterResponse
@@ -311,6 +288,95 @@ namespace Nhom16_MVC.Services
             catch (Exception ex)
             {
                 return new RegisterResponse
+                {
+                    Success = false,
+                    Message = $"Lỗi hệ thống: {ex.Message}"
+                };
+            }
+        }
+
+        public async Task<LoginResponse> LoginAsync(LoginRequest request)
+        {
+            try
+            {
+                using var conn = _dbService.GetConnection();
+                await conn.OpenAsync();
+
+                var query = @"
+                    SELECT manguoidung, hoten, email, sodienthoai, avatar, matkhau, 
+                           vaitro, sodutaikhoan, isemailverified
+                    FROM nguoidung 
+                    WHERE email = @loginId OR sodienthoai = @loginId";
+
+                using var cmd = new NpgsqlCommand(query, conn);
+                cmd.Parameters.AddWithValue("@loginId", request.LoginId.ToLower());
+
+                using var reader = await cmd.ExecuteReaderAsync();
+
+                if (!await reader.ReadAsync())
+                {
+                    return new LoginResponse
+                    {
+                        Success = false,
+                        Message = "Email/Số điện thoại hoặc mật khẩu không đúng!"
+                    };
+                }
+
+                var maNguoiDung = reader.GetInt32(0);
+                var hoTen = reader.GetString(1);
+                var email = reader.GetString(2);
+                var soDienThoai = reader.IsDBNull(3) ? null : reader.GetString(3);
+                var avatar = reader.IsDBNull(4) ? null : reader.GetString(4);
+                var hashedPassword = reader.GetString(5);
+                var vaiTro = reader.GetString(6);
+                var soDuTaiKhoan = reader.GetInt64(7);
+                var isEmailVerified = reader.GetBoolean(8);
+
+                await reader.CloseAsync();
+
+                if (!isEmailVerified)
+                {
+                    return new LoginResponse
+                    {
+                        Success = false,
+                        Message = "Tài khoản chưa xác thực email! Vui lòng kiểm tra hộp thư."
+                    };
+                }
+
+                bool isPasswordValid = BCrypt.Net.BCrypt.Verify(request.MatKhau, hashedPassword);
+
+                if (!isPasswordValid)
+                {
+                    return new LoginResponse
+                    {
+                        Success = false,
+                        Message = "Email/Số điện thoại hoặc mật khẩu không đúng!"
+                    };
+                }
+
+                var token = _jwtHelper.GenerateToken(maNguoiDung, email, vaiTro);
+
+                return new LoginResponse
+                {
+                    Success = true,
+                    Message = "Đăng nhập thành công!",
+                    Token = token,
+                    User = new UserInfo
+                    {
+                        MaNguoiDung = maNguoiDung,
+                        HoTen = hoTen,
+                        Email = email,
+                        SoDienThoai = soDienThoai,
+                        Avatar = avatar,
+                        VaiTro = vaiTro,
+                        SoDuTaiKhoan = soDuTaiKhoan,
+                        IsEmailVerified = isEmailVerified
+                    }
+                };
+            }
+            catch (Exception ex)
+            {
+                return new LoginResponse
                 {
                     Success = false,
                     Message = $"Lỗi hệ thống: {ex.Message}"

@@ -16,10 +16,6 @@ namespace Nhom16_MVC.Controllers.API
             _authService = authService;
         }
 
-        /// <summary>
-        /// API Đăng ký tài khoản mới
-        /// POST: api/auth/register
-        /// </summary>
         [HttpPost("register")]
         public async Task<IActionResult> Register([FromBody] RegisterRequest request)
         {
@@ -43,10 +39,6 @@ namespace Nhom16_MVC.Controllers.API
             return BadRequest(result);
         }
 
-        /// <summary>
-        /// API Xác thực email qua token
-        /// GET: api/auth/verify-email?token=xxx
-        /// </summary>
         [HttpGet("verify-email")]
         public async Task<IActionResult> VerifyEmail([FromQuery] string token)
         {
@@ -63,18 +55,12 @@ namespace Nhom16_MVC.Controllers.API
 
             if (result.Success)
             {
-                // Redirect về trang thông báo thành công (hoặc trang đăng nhập)
                 return Redirect("/Home/VerificationSuccess");
             }
 
-            // Redirect về trang thông báo lỗi
             return Redirect($"/Home/VerificationFailed?message={result.Message}");
         }
 
-        /// <summary>
-        /// API Gửi lại email xác thực
-        /// POST: api/auth/resend-verification
-        /// </summary>
         [HttpPost("resend-verification")]
         public async Task<IActionResult> ResendVerification([FromBody] ResendVerificationRequest request)
         {
@@ -97,10 +83,28 @@ namespace Nhom16_MVC.Controllers.API
             return BadRequest(result);
         }
 
-        /// <summary>
-        /// API Test kết nối database
-        /// GET: api/auth/test-db
-        /// </summary>
+        [HttpPost("login")]
+        public async Task<IActionResult> Login([FromBody] LoginRequest request)
+        {
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(new LoginResponse
+                {
+                    Success = false,
+                    Message = "Dữ liệu không hợp lệ!"
+                });
+            }
+
+            var result = await _authService.LoginAsync(request);
+
+            if (result.Success)
+            {
+                return Ok(result);
+            }
+
+            return BadRequest(result);
+        }
+
         [HttpGet("test-db")]
         public async Task<IActionResult> TestDatabase([FromServices] DatabaseService dbService)
         {
@@ -112,12 +116,11 @@ namespace Nhom16_MVC.Controllers.API
                 Message = isConnected
                     ? "✅ Kết nối PostgreSQL thành công!"
                     : "❌ Không thể kết nối đến PostgreSQL!",
-                Timestamp = DateTime.Now
+                Timestamp = System.DateTime.Now
             });
         }
     }
 
-    // DTO cho resend verification
     public class ResendVerificationRequest
     {
         public string Email { get; set; }
