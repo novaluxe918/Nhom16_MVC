@@ -383,5 +383,144 @@ namespace Nhom16_MVC.Services
                 };
             }
         }
+        // ====================================================================
+        // TÍNH NĂNG: YÊU CẦU QUÊN MẬT KHẨU (HIỆU LỰC 5 PHÚT)
+        // ====================================================================
+        public async Task<ForgotPasswordResponse> ForgotPasswordAsync(ForgotPasswordRequest request)
+        {
+            try
+            {
+                using var conn = _dbService.GetConnection();
+                await conn.OpenAsync();
+
+                // Kiểm tra email y hệt cách hệ thống đang làm ở hàm Login
+                var checkUserQuery = "SELECT manguoidung, hoten, email FROM nguoidung WHERE email = @email LIMIT 1";
+                string userName = string.Empty;
+                string userEmail = string.Empty;
+                bool userExists = false;
+
+                using (var cmd = new NpgsqlCommand(checkUserQuery, conn))
+                {
+                    cmd.Parameters.AddWithValue("@email", request.Email.ToLower().Trim());
+                    using var reader = await cmd.ExecuteReaderAsync();
+                    if (await reader.ReadAsync())
+                    {
+                        userExists = true;
+                        userName = reader["hoten"]?.ToString() ?? "Thành viên SportSync";
+                        userEmail = reader["email"].ToString();
+                    }
+                }
+
+                if (!userExists)
+                {
+                    return new ForgotPasswordResponse { Success = false, Message = "Email này không tồn tại trên hệ thống!" };
+                }
+
+                string resetToken = Guid.NewGuid().ToString();
+                DateTime expiryTime = DateTime.UtcNow.AddMinutes(5); // Hiệu lực chuẩn 5 phút
+
+                var updateTokenQuery = @"
+                    UPDATE nguoidung 
+                    SET reset_token = @token, reset_token_expiry = @expiry 
+                    WHERE email = @email";
+
+                using (var updateCmd = new NpgsqlCommand(updateTokenQuery, conn))
+                {
+                    updateCmd.Parameters.AddWithValue("@token", resetToken);
+                    updateCmd.Parameters.AddWithValue("@expiry", expiryTime);
+                    updateCmd.Parameters.AddWithValue("@email", userEmail);
+                    await updateCmd.ExecuteNonQueryAsync();
+                }
+
+                bool isMailSent = await _emailHelper.SendResetPasswordEmailAsync(userEmail, userName, resetToken);
+
+                if (!isMailSent)
+                {
+                    return new ForgotPasswordResponse { Success = false, Message = "Không thể gửi email lúc này. Vui lòng thử lại sau!" };
+                }
+
+                return new ForgotPasswordResponse { Success = true, Message = "Liên kết đặt lại mật khẩu đã được gửi vào email của bạn!" };
+            }
+            catch (Exception ex)
+            {
+                return new ForgotPasswordResponse { Success = false, Message = $"Lỗi hệ thống: {ex.Message}" };
+            }
+        }
+
+        // ====================================================================
+        // TÍNH NĂNG: ĐẶT LẠI MẬT KHẨU (BẤM NHIỀU LẦN THOẢI MÁI TRONG 5 PHÚT)
+        // ====================================================================
+        public async Task<ResetPasswordResponse> ResetPasswordAsync(ResetPasswordRequest request)
+        {
+            try
+            {
+                using var conn = _dbService.GetConnection();
+                await conn.OpenAsync();
+
+                // Tìm kiếm trực tiếp bằng Token để loại bỏ lỗi không khớp chuỗi/múi giờ của Postgres
+                var checkTokenQuery = @"
+                    SELECT email, reset_token_expiry FROM nguoidung 
+                    WHERE reset_token = @token LIMIT 1";
+
+                string dbEmail = string.Empty;
+                DateTime? expiryTime = null;
+                bool isTokenValid = false;
+
+                using (var cmd = new NpgsqlCommand(checkTokenQuery, conn))
+                {
+                    cmd.Parameters.AddWithValue("@token", request.Token.Trim());
+                    using var reader = await cmd.ExecuteReaderAsync();
+                    if (await reader.ReadAsync())
+                    {
+                        isTokenValid = true;
+                        dbEmail = reader["email"]?.ToString();
+                        expiryTime = reader.IsDBNull(1) ? null : (DateTime?)reader.GetDateTime(1);
+                    }
+                }
+
+                // 1. Kiểm tra xem Token có tồn tại trong DB không
+                if (!isTokenValid)
+                {
+                    return new ResetPasswordResponse { Success = false, Message = "Liên kết xác thực không chính xác!" };
+                }
+
+                // 2. So khớp email bằng C# để đảm bảo tính an toàn tuyệt đối
+                if (string.IsNullOrEmpty(dbEmail) || !dbEmail.Equals(request.Email.Trim(), StringComparison.OrdinalIgnoreCase))
+                {
+                    return new ResetPasswordResponse { Success = false, Message = "Thông tin xác thực tài khoản không trùng khớp!" };
+                }
+
+                // 3. Kiểm tra thời hạn 5 phút (Chuyển về UTC đồng bộ)
+                if (expiryTime.HasValue)
+                {
+                    var expiryUtc = DateTime.SpecifyKind(expiryTime.Value, DateTimeKind.Utc);
+                    if (expiryUtc < DateTime.UtcNow)
+                    {
+                        return new ResetPasswordResponse { Success = false, Message = "Liên kết khôi phục mật khẩu này đã hết hạn (quá 5 phút)!" };
+                    }
+                }
+
+                // 4. Mã hóa mật khẩu mới bằng BCrypt và cập nhật lại vào DB
+                string hashedNewPassword = BCrypt.Net.BCrypt.HashPassword(request.NewPassword);
+
+                var updatePasswordQuery = @"
+                    UPDATE nguoidung 
+                    SET matkhau = @newPassword 
+                    WHERE email = @email";
+
+                using (var updateCmd = new NpgsqlCommand(updatePasswordQuery, conn))
+                {
+                    updateCmd.Parameters.AddWithValue("@newPassword", hashedNewPassword);
+                    updateCmd.Parameters.AddWithValue("@email", dbEmail);
+                    await updateCmd.ExecuteNonQueryAsync();
+                }
+
+                return new ResetPasswordResponse { Success = true, Message = "Thay đổi mật khẩu thành công!" };
+            }
+            catch (Exception ex)
+            {
+                return new ResetPasswordResponse { Success = false, Message = $"Lỗi hệ thống: {ex.Message}" };
+            }
+        }
     }
 }

@@ -174,5 +174,88 @@ namespace Nhom16_MVC.Helpers
                 return false;
             }
         }
+        public async Task<bool> SendResetPasswordEmailAsync(string toEmail, string userName, string resetToken)
+        {
+            try
+            {
+                var emailSettings = _configuration.GetSection("EmailSettings");
+                var appSettings = _configuration.GetSection("AppSettings");
+
+                var message = new MimeMessage();
+                message.From.Add(new MailboxAddress(
+                    emailSettings["SenderName"] ?? "SportSync Support",
+                    emailSettings["SenderEmail"]
+                ));
+                message.To.Add(new MailboxAddress(userName, toEmail));
+                message.Subject = "Đặt lại mật khẩu tài khoản SportSync";
+
+                var resetLink = $"{appSettings["BaseUrl"]}/api/auth/reset-password?token={resetToken}&email={Uri.EscapeDataString(toEmail)}";
+
+                var bodyBuilder = new BodyBuilder
+                {
+                    HtmlBody = $@"
+                        <!DOCTYPE html>
+                        <html>
+                        <head>
+                            <meta charset='utf-8'>
+                            <style>
+                                body {{ font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; line-height: 1.6; color: #222222; background-color: #f9fafb; padding: 20px; }}
+                                .wrapper {{ max-width: 480px; margin: 0 auto; background: #ffffff; padding: 24px; border-radius: 8px; border: 1px solid #e5e7eb; }}
+                                h2 {{ color: #10b981; font-size: 18px; font-weight: 600; margin-top: 0; margin-bottom: 16px; }}
+                                .btn-container {{ text-align: center; margin: 24px 0; }}
+                                .button {{ display: inline-block; padding: 11px 22px; background-color: #10b981; color: #ffffff !important; text-decoration: none; border-radius: 6px; font-weight: 600; font-size: 14px; }}
+                                .notice {{ color: #6b7280; font-size: 13px; background: #f3f4f6; padding: 12px; border-radius: 6px; margin-top: 20px; }}
+                                .footer {{ margin-top: 28px; font-size: 12px; color: #9ca3af; border-top: 1px solid #f3f4f6; padding-top: 14px; }}
+                            </style>
+                        </head>
+                        <body>
+                            <div class='wrapper'>
+                                <h2>Đặt lại mật khẩu của bạn</h2>
+                                <p>Chào {userName},</p>
+                                <p>Chúng tôi nhận được yêu cầu thay đổi mật khẩu cho tài khoản SportSync của bạn. Bạn hãy bấm vào nút bên dưới để tiến hành thiết lập mật khẩu mới:</p>
+                                
+                                <div class='btn-container'>
+                                    <a href='{resetLink}' class='button'>Đổi mật khẩu mới</a>
+                                </div>
+                                
+                                <p>Yêu cầu này sẽ hết hạn sau <strong>5 phút</strong>.</p>
+                                
+                                <div class='notice'>
+                                    Nếu bạn không thực hiện yêu cầu này, bạn có thể an tâm bỏ qua email. Mật khẩu hiện tại của bạn vẫn được giữ an toàn.
+                                </div>
+                                
+                                <div class='footer'>
+                                    Đội ngũ hỗ trợ SportSync
+                                </div>
+                            </div>
+                        </body>
+                        </html>"
+                };
+
+                message.Body = bodyBuilder.ToMessageBody();
+
+                using var client = new SmtpClient();
+                await client.ConnectAsync(
+                    emailSettings["SmtpServer"],
+                    int.Parse(emailSettings["SmtpPort"] ?? "587"),
+                    SecureSocketOptions.StartTls
+                );
+
+                await client.AuthenticateAsync(
+                    emailSettings["SenderEmail"],
+                    emailSettings["SenderPassword"]
+                );
+
+                await client.SendAsync(message);
+                await client.DisconnectAsync(true);
+
+                return true;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[Email Error]: {ex.Message}");
+                return false;
+            }
+        }
     }
 }

@@ -105,6 +105,38 @@ namespace Nhom16_MVC.Controllers.API
             return BadRequest(result);
         }
 
+        [HttpPost("forgot-password")]
+        public async Task<IActionResult> ForgotPassword([FromBody] ForgotPasswordRequest request)
+        {
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(new ForgotPasswordResponse { Success = false, Message = "Email nhập vào không đúng định dạng." });
+            }
+
+            var response = await _authService.ForgotPasswordAsync(request);
+            if (!response.Success)
+            {
+                return BadRequest(response);
+            }
+            return Ok(response);
+        }
+
+        [HttpPost("reset-password")]
+        public async Task<IActionResult> ResetPassword([FromBody] ResetPasswordRequest request)
+        {
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(new ResetPasswordResponse { Success = false, Message = "Dữ liệu nhập vào không hợp lệ." });
+            }
+
+            var response = await _authService.ResetPasswordAsync(request);
+            if (!response.Success)
+            {
+                return BadRequest(response);
+            }
+            return Ok(response);
+        }
+
         [HttpGet("test-db")]
         public async Task<IActionResult> TestDatabase([FromServices] DatabaseService dbService)
         {
@@ -120,7 +152,6 @@ namespace Nhom16_MVC.Controllers.API
             });
         }
     }
-
     public class ResendVerificationRequest
     {
         public string Email { get; set; }
