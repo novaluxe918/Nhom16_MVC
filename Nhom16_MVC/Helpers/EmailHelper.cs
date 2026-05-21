@@ -257,5 +257,66 @@ namespace Nhom16_MVC.Helpers
                 return false;
             }
         }
+        public async Task<bool> SendStadiumApprovalResultEmailAsync(string toEmail, string userName, string stadiumName, bool isApproved, string reason)
+        {
+            try
+            {
+                var emailSettings = _configuration.GetSection("EmailSettings");
+                var message = new MimeMessage();
+                message.From.Add(new MailboxAddress(emailSettings["SenderName"] ?? "SportSync Admin", emailSettings["SenderEmail"]));
+                message.To.Add(new MailboxAddress(userName, toEmail));
+
+                message.Subject = isApproved
+                    ? $"[SportSync] Thông báo: Sân bóng '{stadiumName}' đã được phê duyệt công khai"
+                    : $"[SportSync] Thông báo: Yêu cầu đăng ký sân '{stadiumName}' bị từ chối";
+
+                string contentHtml = isApproved
+                    ? $@"<p>Chúc mừng đối tác <strong>{userName}</strong>,</p>
+                         <p>Yêu cầu đăng ký tổ hợp sân bóng <strong>{stadiumName}</strong> của bạn đã được Admin phê duyệt thành công sau khi kiểm tra đầy đủ hình ảnh và thông tin cơ sở vật chất.</p>
+                         <p>Hiện tại, khách hàng đã có thể tìm kiếm, xem danh sách ảnh chi tiết và tiến hành đặt sân của bạn trên hệ thống.</p>"
+                    : $@"<p>Chào đối tác <strong>{userName}</strong>,</p>
+                         <p>Chúng tôi rất tiếc phải thông báo yêu cầu đăng ký sân bóng <strong>{stadiumName}</strong> của bạn chưa được phê duyệt do không vượt qua khâu kiểm duyệt hình ảnh/thông tin.</p>
+                         <p><strong>Lý do từ chối từ Admin:</strong> <span style='color: #ef4444; font-weight: bold;'>{reason}</span></p>
+                         <p>Vui lòng cập nhật lại hình ảnh chính chủ (tránh sử dụng ảnh giả, ảnh mạng) và gửi lại yêu cầu kiểm duyệt.</p>";
+
+                var bodyBuilder = new BodyBuilder
+                {
+                    HtmlBody = $@"
+                        <!DOCTYPE html>
+                        <html>
+                        <head>
+                            <meta charset='utf-8'>
+                            <style>
+                                body {{ font-family: -apple-system, BlinkMacSystemFont, Arial, sans-serif; line-height: 1.6; color: #333333; padding: 20px; background-color: #f9fafb; }}
+                                .container {{ max-width: 500px; margin: 0 auto; background: #ffffff; padding: 24px; border-radius: 8px; border: 1px solid #e5e7eb; }}
+                                h2 {{ color: {(isApproved ? "#10b981" : "#ef4444")}; font-size: 18px; margin-top: 0; }}
+                                .footer {{ margin-top: 24px; font-size: 12px; color: #9ca3af; border-top: 1px solid #f3f4f6; padding-top: 12px; }}
+                            </style>
+                        </head>
+                        <body>
+                            <div class='container'>
+                                <h2>Kết quả kiểm duyệt nguồn cung sân bóng</h2>
+                                {contentHtml}
+                                <div class='footer'>Đội ngũ quản trị hệ thống SportSync</div>
+                            </div>
+                        </body>
+                        </html>"
+                };
+
+                message.Body = bodyBuilder.ToMessageBody();
+
+                using var client = new SmtpClient();
+                await client.ConnectAsync(emailSettings["SmtpServer"], int.Parse(emailSettings["SmtpPort"] ?? "587"), MailKit.Security.SecureSocketOptions.StartTls);
+                await client.AuthenticateAsync(emailSettings["SenderEmail"], emailSettings["SenderPassword"]);
+                await client.SendAsync(message);
+                await client.DisconnectAsync(true);
+                return true;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[Email Approval Error]: {ex.Message}");
+                return false;
+            }
+        }
     }
 }

@@ -4,6 +4,8 @@ using Nhom16_MVC.Helpers;
 using Npgsql;
 using BCrypt.Net;
 using System;
+using System.Collections.Generic; // Thêm để dùng Dictionary, List
+using System.Linq;               // Thêm để dùng .ToList()
 using System.Threading.Tasks;
 
 namespace Nhom16_MVC.Services
@@ -383,6 +385,7 @@ namespace Nhom16_MVC.Services
                 };
             }
         }
+
         public async Task<ForgotPasswordResponse> ForgotPasswordAsync(ForgotPasswordRequest request)
         {
             try
@@ -390,7 +393,6 @@ namespace Nhom16_MVC.Services
                 using var conn = _dbService.GetConnection();
                 await conn.OpenAsync();
 
-                // Kiểm tra email y hệt cách hệ thống đang làm ở hàm Login
                 var checkUserQuery = "SELECT manguoidung, hoten, email FROM nguoidung WHERE email = @email LIMIT 1";
                 string userName = string.Empty;
                 string userEmail = string.Empty;
@@ -414,7 +416,7 @@ namespace Nhom16_MVC.Services
                 }
 
                 string resetToken = Guid.NewGuid().ToString();
-                DateTime expiryTime = DateTime.UtcNow.AddMinutes(5); // Hiệu lực chuẩn 5 phút
+                DateTime expiryTime = DateTime.UtcNow.AddMinutes(5);
 
                 var updateTokenQuery = @"
                     UPDATE nguoidung 
@@ -443,6 +445,7 @@ namespace Nhom16_MVC.Services
                 return new ForgotPasswordResponse { Success = false, Message = $"Lỗi hệ thống: {ex.Message}" };
             }
         }
+
         public async Task<ResetPasswordResponse> ResetPasswordAsync(ResetPasswordRequest request)
         {
             try
@@ -450,7 +453,6 @@ namespace Nhom16_MVC.Services
                 using var conn = _dbService.GetConnection();
                 await conn.OpenAsync();
 
-                // Tìm kiếm trực tiếp bằng Token để loại bỏ lỗi không khớp chuỗi/múi giờ của Postgres
                 var checkTokenQuery = @"
                     SELECT email, reset_token_expiry FROM nguoidung 
                     WHERE reset_token = @token LIMIT 1";
@@ -471,19 +473,16 @@ namespace Nhom16_MVC.Services
                     }
                 }
 
-                // 1. Kiểm tra xem Token có tồn tại trong DB không
                 if (!isTokenValid)
                 {
                     return new ResetPasswordResponse { Success = false, Message = "Liên kết xác thực không chính xác!" };
                 }
 
-                // 2. So khớp email bằng C# để đảm bảo tính an toàn tuyệt đối
                 if (string.IsNullOrEmpty(dbEmail) || !dbEmail.Equals(request.Email.Trim(), StringComparison.OrdinalIgnoreCase))
                 {
                     return new ResetPasswordResponse { Success = false, Message = "Thông tin xác thực tài khoản không trùng khớp!" };
                 }
 
-                // 3. Kiểm tra thời hạn 5 phút (Chuyển về UTC đồng bộ)
                 if (expiryTime.HasValue)
                 {
                     var expiryUtc = DateTime.SpecifyKind(expiryTime.Value, DateTimeKind.Utc);
@@ -493,7 +492,6 @@ namespace Nhom16_MVC.Services
                     }
                 }
 
-                // 4. Mã hóa mật khẩu mới bằng BCrypt và cập nhật lại vào DB
                 string hashedNewPassword = BCrypt.Net.BCrypt.HashPassword(request.NewPassword);
 
                 var updatePasswordQuery = @"
@@ -515,6 +513,7 @@ namespace Nhom16_MVC.Services
                 return new ResetPasswordResponse { Success = false, Message = $"Lỗi hệ thống: {ex.Message}" };
             }
         }
+
         public async Task<List<StadiumApprovalViewDto>> GetUnapprovedStadiumsAsync()
         {
             var stadiumMap = new Dictionary<long, StadiumApprovalViewDto>();
@@ -525,14 +524,8 @@ namespace Nhom16_MVC.Services
 
                 var query = @"
                     SELECT 
-                        s.masanbong, 
-                        s.tensan, 
-                        s.diachi, 
-                        s.mota, 
-                        s.hinhanh, 
-                        s.daduyet, 
-                        n.hoten,
-                        m.link
+                        s.masanbong, s.tensan, s.diachi, s.mota, s.hinhanh, s.daduyet, 
+                        n.hoten, m.link
                     FROM sanbong s
                     JOIN nguoidung n ON s.chusan = n.manguoidung
                     LEFT JOIN media_sanbong m ON s.masanbong = m.masanbong
@@ -544,25 +537,23 @@ namespace Nhom16_MVC.Services
 
                 while (await reader.ReadAsync())
                 {
-                    // Đọc maSanBong theo kiểu long (bigint của Postgres)
                     long maSan = reader.GetInt64(reader.GetOrdinal("masanbong"));
 
                     if (!stadiumMap.ContainsKey(maSan))
                     {
                         stadiumMap[maSan] = new StadiumApprovalViewDto
                         {
-                            MaSanBong = (int)maSan, // Ép về int để khớp với DTO của bạn
+                            MaSanBong = (int)maSan,
                             TenSan = reader["tensan"]?.ToString() ?? "",
                             ChuSan = reader["hoten"]?.ToString() ?? "Chủ sân",
                             DiaChi = reader["diachi"]?.ToString() ?? "",
                             MoTa = reader["mota"]?.ToString() ?? "",
                             HinhAnhDaiDien = reader["hinhanh"]?.ToString() ?? "",
-                            DaDuyet = false, // Chắc chắn là false vì có điều kiện WHERE s.daduyet = FALSE
+                            DaDuyet = false,
                             DanhSachHinhAnhChiTiet = new List<string>()
                         };
                     }
 
-                    // Đọc cột link ảnh chi tiết từ bảng media_sanbong
                     int linkOrdinal = reader.GetOrdinal("link");
                     if (!reader.IsDBNull(linkOrdinal))
                     {
@@ -576,45 +567,86 @@ namespace Nhom16_MVC.Services
             }
             catch (Exception ex)
             {
-                // Nếu có lỗi gì nó sẽ in ra ở màn hình Console của Visual Studio để mình thấy liền
                 Console.WriteLine($"[LỖI GET SÂN CHƯA DUYỆT]: {ex.Message}");
             }
-
             return stadiumMap.Values.ToList();
         }
-        public async Task<StadiumApprovalResponse> ApproveStadiumAsync(int maSanBong)
+        public async Task<StadiumApprovalResponse> ProcessStadiumApprovalAsync(ApproveStadiumRequest request)
         {
             try
             {
                 using var conn = _dbService.GetConnection();
                 await conn.OpenAsync();
 
-                var checkQuery = "SELECT masanbong FROM sanbong WHERE masanbong = @id LIMIT 1";
+                var getStadiumQuery = @"
+                    SELECT s.tensan, n.hoten, n.email 
+                    FROM sanbong s
+                    JOIN nguoidung n ON s.chusan = n.manguoidung
+                    WHERE s.masanbong = @id LIMIT 1";
+
+                string tenSan = "", tenChuSan = "", emailChuSan = "";
                 bool isExist = false;
-                using (var checkCmd = new NpgsqlCommand(checkQuery, conn))
+
+                using (var cmd = new NpgsqlCommand(getStadiumQuery, conn))
                 {
-                    checkCmd.Parameters.AddWithValue("@id", maSanBong);
-                    var res = await checkCmd.ExecuteScalarAsync();
-                    if (res != null) isExist = true;
+                    cmd.Parameters.AddWithValue("@id", request.MaSanBong);
+                    using var reader = await cmd.ExecuteReaderAsync();
+                    if (await reader.ReadAsync())
+                    {
+                        isExist = true;
+                        tenSan = reader["tensan"]?.ToString() ?? "Sân bóng";
+                        tenChuSan = reader["hoten"]?.ToString() ?? "Đối tác";
+                        emailChuSan = reader["email"]?.ToString() ?? "";
+                    }
                 }
 
                 if (!isExist)
                 {
-                    return new StadiumApprovalResponse { Success = false, Message = "Sân bóng này không tồn tại trên hệ thống!" };
+                    return new StadiumApprovalResponse { Success = false, Message = "Sân bóng cần duyệt không tồn tại trên hệ thống!" };
                 }
 
-                var updateQuery = "UPDATE sanbong SET daduyet = TRUE WHERE masanbong = @id";
-                using (var updateCmd = new NpgsqlCommand(updateQuery, conn))
+                if (request.IsApproved)
                 {
-                    updateCmd.Parameters.AddWithValue("@id", maSanBong);
-                    await updateCmd.ExecuteNonQueryAsync();
+                    var approveQuery = "UPDATE sanbong SET daduyet = TRUE WHERE masanbong = @id";
+                    using var approveCmd = new NpgsqlCommand(approveQuery, conn);
+                    approveCmd.Parameters.AddWithValue("@id", request.MaSanBong);
+                    await approveCmd.ExecuteNonQueryAsync();
+                }
+                else
+                {
+                    if (string.IsNullOrEmpty(request.LyDoTuChoi))
+                    {
+                        return new StadiumApprovalResponse { Success = false, Message = "Vui lòng nhập lý do từ chối kiểm duyệt sân!" };
+                    }
+
+                    var deleteMediaQuery = "DELETE FROM media_sanbong WHERE masanbong = @id";
+                    using var deleteMediaCmd = new NpgsqlCommand(deleteMediaQuery, conn);
+                    deleteMediaCmd.Parameters.AddWithValue("@id", request.MaSanBong);
+                    await deleteMediaCmd.ExecuteNonQueryAsync();
+
+                    var deleteStadiumQuery = "DELETE FROM sanbong WHERE masanbong = @id";
+                    using var deleteStadiumCmd = new NpgsqlCommand(deleteStadiumQuery, conn);
+                    deleteStadiumCmd.Parameters.AddWithValue("@id", request.MaSanBong);
+                    await deleteStadiumCmd.ExecuteNonQueryAsync();
                 }
 
-                return new StadiumApprovalResponse { Success = true, Message = "Đã duyệt sân bóng thành công và hiển thị công khai!" };
+                // SỬA TẠI ĐÂY: Gọi thông qua _emailHelper của class thay vì gọi cục bộ
+                if (!string.IsNullOrEmpty(emailChuSan))
+                {
+                    _ = _emailHelper.SendStadiumApprovalResultEmailAsync(emailChuSan, tenChuSan, tenSan, request.IsApproved, request.IsApproved ? "" : request.LyDoTuChoi);
+                }
+
+                return new StadiumApprovalResponse
+                {
+                    Success = true,
+                    Message = request.IsApproved
+                        ? "Đã phê duyệt sân bóng thành công và gửi email thông báo cho chủ sân!"
+                        : "Đã từ chối, loại bỏ yêu cầu đăng ký sân và gửi email lý do cho chủ sân!"
+                };
             }
             catch (Exception ex)
             {
-                return new StadiumApprovalResponse { Success = false, Message = $"Lỗi hệ thống khi duyệt sân: {ex.Message}" };
+                return new StadiumApprovalResponse { Success = false, Message = $"Lỗi xử lý kiểm duyệt: {ex.Message}" };
             }
         }
     }

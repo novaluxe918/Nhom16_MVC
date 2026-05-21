@@ -144,15 +144,15 @@ namespace Nhom16_MVC.Controllers.API
             return Ok(result);
         }
 
-        [HttpPost("admin/approve-stadium")]
-        public async Task<IActionResult> ApproveStadium([FromBody] ApproveStadiumRequest request)
+        [HttpPost("admin/process-approval")]
+        public async Task<IActionResult> ProcessStadiumApproval([FromBody] ApproveStadiumRequest request)
         {
             if (request == null || request.MaSanBong <= 0)
             {
                 return BadRequest(new StadiumApprovalResponse { Success = false, Message = "Mã sân bóng không hợp lệ." });
             }
 
-            var response = await _authService.ApproveStadiumAsync(request.MaSanBong);
+            var response = await _authService.ProcessStadiumApprovalAsync(request);
             if (!response.Success)
             {
                 return BadRequest(response);
