@@ -159,6 +159,38 @@ namespace Nhom16_MVC.Controllers.API
             }
             return Ok(response);
         }
+        [HttpGet("admin/pending-withdrawals")]
+        public async Task<IActionResult> GetPendingWithdrawals()
+        {
+            var result = await _authService.GetPendingWithdrawalsAsync();
+            return Ok(result);
+        }
+
+        [HttpPost("admin/process-withdrawal")]
+        public async Task<IActionResult> ProcessWithdrawal([FromBody] ProcessWithdrawalDto request)
+        {
+            if (request == null || request.MaYeuCau <= 0)
+            {
+                return BadRequest(new WithdrawalResponse { Success = false, Message = "Mã yêu cầu không hợp lệ." });
+            }
+
+            if (request.TrangThaiMoi != "da_chuyen" && request.TrangThaiMoi != "tu_choi")
+            {
+                return BadRequest(new WithdrawalResponse { Success = false, Message = "Trạng thái mới không hợp lệ. Chỉ nhận 'da_chuyen' hoặc 'tu_choi'." });
+            }
+
+            if (request.TrangThaiMoi == "tu_choi" && string.IsNullOrEmpty(request.LyDoTuChoi))
+            {
+                return BadRequest(new WithdrawalResponse { Success = false, Message = "Vui lòng nhập lý do từ chối yêu cầu rút tiền." });
+            }
+
+            var response = await _authService.ProcessWithdrawalAsync(request);
+            if (!response.Success)
+            {
+                return BadRequest(response);
+            }
+            return Ok(response);
+        }
 
         [HttpGet("test-db")]
         public async Task<IActionResult> TestDatabase([FromServices] DatabaseService dbService)

@@ -1,8 +1,9 @@
-﻿using Nhom16_MVC.Models;
-using Nhom16_MVC.Models.DTOs;
+﻿using BCrypt.Net;
+using Microsoft.Extensions.Configuration;
 using Nhom16_MVC.Helpers;
+using Nhom16_MVC.Models;
+using Nhom16_MVC.Models.DTOs;
 using Npgsql;
-using BCrypt.Net;
 using System;
 using System.Collections.Generic; // Thêm để dùng Dictionary, List
 using System.Linq;               // Thêm để dùng .ToList()
@@ -22,7 +23,6 @@ namespace Nhom16_MVC.Services
             _emailHelper = emailHelper;
             _jwtHelper = jwtHelper;
         }
-
         public async Task<RegisterResponse> RegisterAsync(RegisterRequest request)
         {
             try
@@ -133,7 +133,6 @@ namespace Nhom16_MVC.Services
                 };
             }
         }
-
         public async Task<RegisterResponse> VerifyEmailAsync(string token)
         {
             try
@@ -219,7 +218,6 @@ namespace Nhom16_MVC.Services
                 };
             }
         }
-
         public async Task<RegisterResponse> ResendVerificationEmailAsync(string email)
         {
             try
@@ -296,7 +294,6 @@ namespace Nhom16_MVC.Services
                 };
             }
         }
-
         public async Task<LoginResponse> LoginAsync(LoginRequest request)
         {
             try
@@ -385,7 +382,6 @@ namespace Nhom16_MVC.Services
                 };
             }
         }
-
         public async Task<ForgotPasswordResponse> ForgotPasswordAsync(ForgotPasswordRequest request)
         {
             try
@@ -445,7 +441,6 @@ namespace Nhom16_MVC.Services
                 return new ForgotPasswordResponse { Success = false, Message = $"Lỗi hệ thống: {ex.Message}" };
             }
         }
-
         public async Task<ResetPasswordResponse> ResetPasswordAsync(ResetPasswordRequest request)
         {
             try
@@ -513,7 +508,6 @@ namespace Nhom16_MVC.Services
                 return new ResetPasswordResponse { Success = false, Message = $"Lỗi hệ thống: {ex.Message}" };
             }
         }
-
         public async Task<List<StadiumApprovalViewDto>> GetUnapprovedStadiumsAsync()
         {
             var stadiumMap = new Dictionary<long, StadiumApprovalViewDto>();
@@ -647,6 +641,137 @@ namespace Nhom16_MVC.Services
             catch (Exception ex)
             {
                 return new StadiumApprovalResponse { Success = false, Message = $"Lỗi xử lý kiểm duyệt: {ex.Message}" };
+            }
+        }
+        public async Task<object> GetPendingWithdrawalsAsync()
+        {
+            var list = new List<object>();
+            string query = @"
+                SELECT y.mayeucau, y.manguoidung, y.sotien, y.trangthai, y.tennganhang, y.sotaikhoan, n.hoten, n.email
+                FROM yeucauruttien y
+                JOIN nguoidung n ON y.manguoidung = n.manguoidung
+                WHERE y.trangthai = 'cho_xu_ly'
+                ORDER BY y.mayeucau DESC";
+
+            try
+            {
+                // Thay thế việc dùng _configuration bằng _dbService của nhóm bạn
+                using var conn = _dbService.GetConnection();
+                await conn.OpenAsync();
+
+                using (var cmd = new NpgsqlCommand(query, conn))
+                using (var reader = await cmd.ExecuteReaderAsync())
+                {
+                    while (await reader.ReadAsync())
+                    {
+                        // Đọc theo tên cột chuẩn xác, tránh lỗi index vị trí
+                        list.Add(new
+                        {
+                            MaYeuCau = Convert.ToInt32(reader["mayeucau"]),
+                            MaNguoiDung = Convert.ToInt32(reader["manguoidung"]),
+                            SoTien = Convert.ToDecimal(reader["sotien"]),
+                            TrangThai = reader["trangthai"]?.ToString() ?? "",
+                            TenNganHang = reader["tennganhang"]?.ToString() ?? "",
+                            SoTaiKhoan = reader["sotaikhoan"]?.ToString() ?? "",
+                            HoTenNguoiRut = reader["hoten"]?.ToString() ?? "",
+                            EmailNguoiRut = reader["email"]?.ToString() ?? ""
+                        });
+                    }
+                }
+                return new { Success = true, Data = list };
+            }
+            catch (Exception ex)
+            {
+                return new { Success = false, Message = "Lỗi lấy danh sách: " + ex.Message };
+            }
+        }
+        public async Task<WithdrawalResponse> ProcessWithdrawalAsync(ProcessWithdrawalDto dto)
+        {
+            try
+            {
+                using var conn = _dbService.GetConnection();
+                await conn.OpenAsync();
+
+                // 1. Lấy thông tin tài khoản người rút để kiểm tra trạng thái và chuẩn bị gửi mail
+                string checkQuery = @"
+            SELECT y.trangthai, n.email, n.hoten, y.sotien 
+            FROM yeucauruttien y 
+            JOIN nguoidung n ON y.manguoidung = n.manguoidung 
+            WHERE y.mayeucau = @MaYeuCau";
+
+                string currentStatus = "";
+                string userEmail = "";
+                string userName = "";
+                decimal soTienRut = 0;
+
+                using (var cmdCheck = new NpgsqlCommand(checkQuery, conn))
+                {
+                    cmdCheck.Parameters.AddWithValue("@MaYeuCau", dto.MaYeuCau);
+                    using (var reader = await cmdCheck.ExecuteReaderAsync())
+                    {
+                        if (await reader.ReadAsync())
+                        {
+                            currentStatus = reader["trangthai"]?.ToString() ?? "";
+                            userEmail = reader["email"]?.ToString() ?? "";
+                            userName = reader["hoten"]?.ToString() ?? "";
+                            soTienRut = Convert.ToDecimal(reader["sotien"]);
+                        }
+                        else
+                        {
+                            return new WithdrawalResponse { Success = false, Message = "Không tìm thấy yêu cầu rút tiền này." };
+                        }
+                    }
+                }
+
+                // Kiểm tra logic tầng nghiệp vụ
+                if (currentStatus != "cho_xu_ly")
+                {
+                    return new WithdrawalResponse { Success = false, Message = $"Yêu cầu này đã được xử lý từ trước! (Trạng thái hiện tại: {currentStatus})." };
+                }
+
+                // 2. Tiến hành cập nhật trạng thái (ĐÃ FIX: Thay đổi 'lydotuchoi' thành cột 'mota' để khớp DB)
+                string updateQuery = @"
+            UPDATE yeucauruttien 
+            SET trangthai = @TrangThaiMoi, mota = @LyDoTuChoi 
+            WHERE mayeucau = @MaYeuCau";
+
+                using (var cmdUpdate = new NpgsqlCommand(updateQuery, conn))
+                {
+                    cmdUpdate.Parameters.AddWithValue("@TrangThaiMoi", dto.TrangThaiMoi);
+                    // Nếu admin từ chối thì lưu lý do vào cột mota, nếu duyệt thành công thì giữ nguyên mô tả cũ hoặc để trống
+                    cmdUpdate.Parameters.AddWithValue("@LyDoTuChoi", (object)dto.LyDoTuChoi ?? DBNull.Value);
+                    cmdUpdate.Parameters.AddWithValue("@MaYeuCau", dto.MaYeuCau);
+
+                    await cmdUpdate.ExecuteNonQueryAsync();
+
+                    // 3. --- LOGIC GỬI EMAIL TỰ ĐỘNG BẰNG EMAILHELPER CỦA NHÓM BẠN ---
+                    string subject = dto.TrangThaiMoi == "da_chuyen" ? "Thông báo: Rút tiền thành công" : "Thông báo: Yêu cầu rút tiền bị từ chối";
+                    string content = dto.TrangThaiMoi == "da_chuyen"
+                        ? $"Chào {userName},\nYêu cầu rút số tiền {soTienRut:N0} VNĐ về tài khoản ngân hàng của bạn đã được Admin phê duyệt thành công!"
+                        : $"Chào {userName},\nYêu cầu rút số tiền {soTienRut:N0} VNĐ của bạn đã bị từ chối.\nLý do: {dto.LyDoTuChoi}";
+
+                    // Kích hoạt hàm gửi mail thực tế của nhóm bạn (Bỏ comment nếu EmailHelper đã sẵn sàng)
+                    // await _emailHelper.SendEmailAsync(userEmail, subject, content);
+
+                    return new WithdrawalResponse
+                    {
+                        Success = true,
+                        Message = dto.TrangThaiMoi == "da_chuyen" ? "Đã phê duyệt và chuyển tiền thành công!" : "Đã từ chối yêu cầu rút tiền!"
+                    };
+                }
+            }
+            // --- BẮT CÁC LỖI RÀNG BUỘC PHÁT SINH TỪ TRIGGER POSTGRES ---
+            catch (PostgresException ex)
+            {
+                if (ex.MessageText.Contains("ERROR_INVALID_STATUS"))
+                {
+                    return new WithdrawalResponse { Success = false, Message = "Thao tác thất bại: Yêu cầu rút tiền này đã được cập nhật trạng thái trước đó rồi!" };
+                }
+                return new WithdrawalResponse { Success = false, Message = "Lỗi xử lý cơ sở dữ liệu: " + ex.MessageText };
+            }
+            catch (Exception ex)
+            {
+                return new WithdrawalResponse { Success = false, Message = "Lỗi hệ thống: " + ex.Message };
             }
         }
     }
