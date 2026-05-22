@@ -301,9 +301,9 @@ namespace Nhom16_MVC.Services
                 using var conn = _dbService.GetConnection();
                 await conn.OpenAsync();
 
-                var query = @"
+                string query = @"
                     SELECT manguoidung, hoten, email, sodienthoai, avatar, matkhau, 
-                           vaitro, sodutaikhoan, isemailverified
+                        vaitro, sodutaikhoan, isemailverified, trangthai
                     FROM nguoidung 
                     WHERE email = @loginId OR sodienthoai = @loginId";
 
@@ -330,6 +330,7 @@ namespace Nhom16_MVC.Services
                 var vaiTro = reader.GetString(6);
                 var soDuTaiKhoan = reader.GetInt64(7);
                 var isEmailVerified = reader.GetBoolean(8);
+                string trangThai = reader.IsDBNull(9) ? "hoat_dong" : reader.GetString(9);
 
                 await reader.CloseAsync();
 
@@ -350,6 +351,15 @@ namespace Nhom16_MVC.Services
                     {
                         Success = false,
                         Message = "Email/Số điện thoại hoặc mật khẩu không đúng!"
+                    };
+                }
+
+                if (trangThai == "bi_khoa")
+                {
+                    return new LoginResponse
+                    {
+                        Success = false,
+                        Message = "Tài khoản của bạn đã bị khóa do vi phạm quy định. Vui lòng liên hệ Admin!"
                     };
                 }
 
@@ -772,6 +782,92 @@ namespace Nhom16_MVC.Services
             catch (Exception ex)
             {
                 return new WithdrawalResponse { Success = false, Message = "Lỗi hệ thống: " + ex.Message };
+            }
+        }
+        public async Task<object> GetAllUsersExceptAdminAsync(int currentAdminId)
+        {
+            var list = new List<object>();
+            // Câu lệnh SQL lấy tất cả người dùng có vai trò không phải là Admin
+            // Hoặc nếu là Admin thì loại trừ chính ID của Admin đang đăng nhập hiện tại
+            string query = @"
+        SELECT manguoidung, hoten, email, sodienthoai, vaitro, sodutaikhoan, trangthai, createdat
+        FROM nguoidung
+        WHERE vaitro <> 'Admin' OR manguoidung <> @currentAdminId
+        ORDER BY manguoidung DESC";
+
+            try
+            {
+                using var conn = _dbService.GetConnection();
+                await conn.OpenAsync();
+
+                using (var cmd = new NpgsqlCommand(query, conn))
+                {
+                    cmd.Parameters.AddWithValue("@currentAdminId", currentAdminId);
+                    using (var reader = await cmd.ExecuteReaderAsync())
+                    {
+                        while (await reader.ReadAsync())
+                        {
+                            list.Add(new
+                            {
+                                MaNguoiDung = Convert.ToInt32(reader["manguoidung"]),
+                                HoTen = reader["hoten"]?.ToString() ?? "",
+                                Email = reader["email"]?.ToString() ?? "",
+                                SoDienThoai = reader["sodienthoai"]?.ToString() ?? "",
+                                VaiTro = reader["vaitro"]?.ToString() ?? "",
+                                SoDuTaiKhoan = Convert.ToInt64(reader["sodutaikhoan"]),
+                                TrangThai = reader["trangthai"]?.ToString() ?? "hoat_dong",
+                                NgayTao = Convert.ToDateTime(reader["createdat"])
+                            });
+                        }
+                    }
+                }
+                return new { Success = true, Data = list };
+            }
+            catch (Exception ex)
+            {
+                return new { Success = false, Message = "Lỗi lấy danh sách tài khoản: " + ex.Message };
+            }
+        }
+        public async Task<WithdrawalResponse> UpdateUserStatusAsync(UpdateUserStatusDto dto)
+        {
+            try
+            {
+                using var conn = _dbService.GetConnection();
+                await conn.OpenAsync();
+
+                // 1. Kiểm tra tài khoản cần khóa xem có tồn tại không
+                string checkQuery = "SELECT vaitro FROM nguoidung WHERE manguoidung = @id";
+                using (var cmdCheck = new NpgsqlCommand(checkQuery, conn))
+                {
+                    cmdCheck.Parameters.AddWithValue("@id", dto.MaNguoiDung);
+                    using var reader = await cmdCheck.ExecuteReaderAsync();
+                    if (!await reader.ReadAsync())
+                    {
+                        return new WithdrawalResponse { Success = false, Message = "Không tìm thấy người dùng này trên hệ thống." };
+                    }
+
+                    string vaiTro = reader["vaitro"]?.ToString();
+                    if (vaiTro?.ToLower() == "admin")
+                    {
+                        return new WithdrawalResponse { Success = false, Message = "Không thể thực hiện thao tác khóa trên tài khoản Quản trị viên khác!" };
+                    }
+                }
+
+                // 2. Thực hiện cập nhật trạng thái mới vào CSDL
+                string updateQuery = "UPDATE nguoidung SET trangthai = @trangThai WHERE manguoidung = @id";
+                using (var cmdUpdate = new NpgsqlCommand(updateQuery, conn))
+                {
+                    cmdUpdate.Parameters.AddWithValue("@trangThai", dto.TrangThaiMoi);
+                    cmdUpdate.Parameters.AddWithValue("@id", dto.MaNguoiDung);
+                    await cmdUpdate.ExecuteNonQueryAsync();
+                }
+
+                string hanhDong = dto.TrangThaiMoi == "bi_khoa" ? "khóa" : "mở khóa";
+                return new WithdrawalResponse { Success = true, Message = $"Đã {hanhDong} tài khoản thành công!" };
+            }
+            catch (Exception ex)
+            {
+                return new WithdrawalResponse { Success = false, Message = "Lỗi hệ thống khi cập nhật trạng thái: " + ex.Message };
             }
         }
     }

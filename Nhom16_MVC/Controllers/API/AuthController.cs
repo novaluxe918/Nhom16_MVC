@@ -192,6 +192,40 @@ namespace Nhom16_MVC.Controllers.API
             return Ok(response);
         }
 
+        [HttpPost("admin/update-user-status")]
+        public async Task<IActionResult> UpdateUserStatus([FromBody] UpdateUserStatusDto request)
+        {
+            if (request == null || request.MaNguoiDung <= 0)
+            {
+                return BadRequest(new WithdrawalResponse { Success = false, Message = "Thông tin tài khoản không hợp lệ." });
+            }
+
+            if (request.TrangThaiMoi != "hoat_dong" && request.TrangThaiMoi != "bi_khoa")
+            {
+                return BadRequest(new WithdrawalResponse { Success = false, Message = "Trạng thái mới không hợp lệ! Chỉ nhận 'hoat_dong' hoặc 'bi_khoa'." });
+            }
+
+            var response = await _authService.UpdateUserStatusAsync(request);
+            if (!response.Success)
+            {
+                return BadRequest(response);
+            }
+            return Ok(response);
+        }
+
+        [HttpGet("admin/all-users")]
+        public async Task<IActionResult> GetAllUsers([FromQuery] int currentAdminId)
+        {
+            // currentAdminId này khi làm thực tế frontend sẽ truyền ID của thằng admin đang log vào qua query
+            if (currentAdminId <= 0)
+            {
+                return BadRequest(new { Success = false, Message = "Mã Admin hiện tại không hợp lệ." });
+            }
+
+            var result = await _authService.GetAllUsersExceptAdminAsync(currentAdminId);
+            return Ok(result);
+        }
+
         [HttpGet("test-db")]
         public async Task<IActionResult> TestDatabase([FromServices] DatabaseService dbService)
         {
