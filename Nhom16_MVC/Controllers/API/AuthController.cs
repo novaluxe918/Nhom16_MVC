@@ -240,6 +240,28 @@ namespace Nhom16_MVC.Controllers.API
                 Timestamp = System.DateTime.Now
             });
         }
+        [HttpGet("admin/bookings")]
+        public async Task<IActionResult> AdminGetAllBookings()
+        {
+            var result = await _authService.AdminGetAllBookingsAsync();
+            return Ok(result);
+        }
+
+        [HttpPost("admin/resolve-booking")]
+        public async Task<IActionResult> AdminResolveBooking([FromBody] ResolveBookingIssueDto request)
+        {
+            if (request == null || request.MaChiTietDatSan <= 0)
+            {
+                return BadRequest(new WithdrawalResponse { Success = false, Message = "Dữ liệu gửi lên không hợp lệ." });
+            }
+
+            var response = await _authService.AdminResolveBookingIssueAsync(request);
+            if (!response.Success)
+            {
+                return BadRequest(response);
+            }
+            return Ok(response);
+        }
     }
     public class ResendVerificationRequest
     {

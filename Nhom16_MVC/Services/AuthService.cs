@@ -870,5 +870,86 @@ namespace Nhom16_MVC.Services
                 return new WithdrawalResponse { Success = false, Message = "Lỗi hệ thống khi cập nhật trạng thái: " + ex.Message };
             }
         }
+        public async Task<object> AdminGetAllBookingsAsync()
+        {
+            var bookings = new List<object>();
+            string query = @"
+        SELECT 
+            ct.machitietdatsan, d.madatsan, nt.hoten AS ten_nguoi_thue, nt.sodienthoai,
+            sb.tensanchitiet, s.tensan, ct.giobatdau, ct.giokethuc,
+            ct.trangthaidatsan, ct.covande, d.ngaydat
+        FROM public.chitietdatsan ct
+        JOIN public.datsan d ON ct.madatsan = d.madatsan
+        JOIN public.nguoidung nt ON d.nguoidhthue = nt.manguoidung
+        JOIN public.sanbongchitiet sb ON ct.masanchitiet = sb.masanchitiet
+        JOIN public.sanbong s ON sb.masanbong = s.masanbong
+        ORDER BY d.ngaydat DESC, ct.machitietdatsan DESC";
+
+            try
+            {
+                using var conn = _dbService.GetConnection();
+                await conn.OpenAsync();
+                using var cmd = new NpgsqlCommand(query, conn);
+                using var reader = await cmd.ExecuteReaderAsync();
+
+                while (await reader.ReadAsync())
+                {
+                    bookings.Add(new
+                    {
+                        MaChiTietDatSan = Convert.ToInt32(reader["machitietdatsan"]),
+                        MaDatSan = Convert.ToInt32(reader["madatsan"]),
+                        TenNguoiThue = reader["ten_nguoi_thue"]?.ToString(),
+                        SoDienThoai = reader["sodienthoai"]?.ToString(),
+                        TenSanBong = reader["tensan"]?.ToString() + " - " + reader["tensanchitiet"]?.ToString(),
+                        GioBatDau = Convert.ToDateTime(reader["giobatdau"]),
+                        GioKetThuc = Convert.ToDateTime(reader["giokethuc"]),
+                        TrangThaiDatSan = reader["trangthaidatsan"]?.ToString(),
+                        CoVanDe = Convert.ToBoolean(reader["covande"]),
+                        NgayDat = Convert.ToDateTime(reader["ngaydat"])
+                    });
+                }
+                return new { Success = true, Data = bookings };
+            }
+            catch (Exception ex)
+            {
+                return new { Success = false, Message = "Lỗi khi lấy danh sách đặt sân: " + ex.Message };
+            }
+        }
+        public async Task<WithdrawalResponse> AdminResolveBookingIssueAsync(ResolveBookingIssueDto dto)
+        {
+            try
+            {
+                using var conn = _dbService.GetConnection();
+                await conn.OpenAsync();
+
+                // Cập nhật trạng thái mới và đánh dấu đã xử lý sự cố (coVanDe = false hoặc tùy admin chọn)
+                string updateQuery = @"
+            UPDATE public.chitietdatsan 
+            SET trangthaidatsan = @trangThai, covande = @coVanDe 
+            WHERE machitietdatsan = @maChiTiet";
+
+                using (var cmd = new NpgsqlCommand(updateQuery, conn))
+                {
+                    cmd.Parameters.AddWithValue("@trangThai", dto.TrangThaiMoi);
+                    cmd.Parameters.AddWithValue("@coVanDe", dto.CoVanDe);
+                    cmd.Parameters.AddWithValue("@maChiTiet", dto.MaChiTietDatSan);
+
+                    int rowsAffected = await cmd.ExecuteNonQueryAsync();
+                    if (rowsAffected == 0)
+                    {
+                        return new WithdrawalResponse { Success = false, Message = "Không tìm thấy chi tiết đơn đặt sân này." };
+                    }
+                }
+
+                // 💡 LOGIC NÂNG CAO: Nếu trạng thái mới là 'da_huy' và trước đó khách đã bị trừ tiền,
+                // bạn có thể viết thêm logic cộng hoàn tiền vào ví khách tại đây.
+
+                return new WithdrawalResponse { Success = true, Message = "Xử lý và cập nhật đơn đặt sân thành công!" };
+            }
+            catch (Exception ex)
+            {
+                return new WithdrawalResponse { Success = false, Message = "Lỗi hệ thống: " + ex.Message };
+            }
+        }
     }
 }
