@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
-using Nhom16_MVC.Data;
+using Nhom16_MVC.Services;
+
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -9,9 +10,7 @@ builder.Services.AddControllersWithViews();
 
 builder.Services.AddControllers();
 
-builder.Services.AddDbContext<AppDbContext>(options =>
-    options.UseNpgsql(
-        builder.Configuration.GetConnectionString("DefaultConnection")));
+builder.Services.AddScoped<DatabaseService>();
 
 
 
