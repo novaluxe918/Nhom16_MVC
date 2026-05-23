@@ -16,7 +16,6 @@ Dự án xây dựng hệ thống quản lý sân bóng hỗ trợ:
 - Phan Mai Hoài Nhi
 - Nguyễn Thị Thương
 
----
 
 ## Công nghệ sử dụng
 
@@ -32,10 +31,8 @@ Dự án xây dựng hệ thống quản lý sân bóng hỗ trợ:
 - PostgreSQL
 
 ---
+## Chạy Frontend
+- cd fe
+- npm install
+- npm run dev
 
-# Cấu trúc thư mục
-
-Nhom16/
-│
-├── fe/          # Frontend React + Vite
-├── backend/     # ASP.NET Core MVC
