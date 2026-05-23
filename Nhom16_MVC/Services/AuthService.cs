@@ -870,20 +870,21 @@ namespace Nhom16_MVC.Services
                 return new WithdrawalResponse { Success = false, Message = "Lỗi hệ thống khi cập nhật trạng thái: " + ex.Message };
             }
         }
+        // 1. LẤY DANH SÁCH ĐẶT SÂN: Đẩy các đơn có sự cố lên đầu để Admin dễ xử lý
         public async Task<object> AdminGetAllBookingsAsync()
         {
             var bookings = new List<object>();
             string query = @"
         SELECT 
-            ct.machitietdatsan, d.madatsan, nt.hoten AS ten_nguoi_thue, nt.sodienthoai,
+            ct.machitietdatsan, d.madatsan, nt.manguoidung AS ma_nguoi_thue, nt.hoten AS ten_nguoi_thue, nt.sodienthoai,
             sb.tensanchitiet, s.tensan, ct.giobatdau, ct.giokethuc,
-            ct.trangthaidatsan, ct.covande, d.ngaydat
+            ct.trangthaidatsan, ct.covande, d.ngaydat, ct.giatien
         FROM public.chitietdatsan ct
         JOIN public.datsan d ON ct.madatsan = d.madatsan
         JOIN public.nguoidung nt ON d.nguoidhthue = nt.manguoidung
         JOIN public.sanbongchitiet sb ON ct.masanchitiet = sb.masanchitiet
         JOIN public.sanbong s ON sb.masanbong = s.masanbong
-        ORDER BY d.ngaydat DESC, ct.machitietdatsan DESC";
+        ORDER BY ct.covande DESC, d.ngaydat DESC, ct.machitietdatsan DESC"; // Ưu tiên hiển thị sự cố trước
 
             try
             {
@@ -898,6 +899,7 @@ namespace Nhom16_MVC.Services
                     {
                         MaChiTietDatSan = Convert.ToInt32(reader["machitietdatsan"]),
                         MaDatSan = Convert.ToInt32(reader["madatsan"]),
+                        MaNguoiThue = Convert.ToInt32(reader["ma_nguoi_thue"]),
                         TenNguoiThue = reader["ten_nguoi_thue"]?.ToString(),
                         SoDienThoai = reader["sodienthoai"]?.ToString(),
                         TenSanBong = reader["tensan"]?.ToString() + " - " + reader["tensanchitiet"]?.ToString(),
@@ -905,7 +907,8 @@ namespace Nhom16_MVC.Services
                         GioKetThuc = Convert.ToDateTime(reader["giokethuc"]),
                         TrangThaiDatSan = reader["trangthaidatsan"]?.ToString(),
                         CoVanDe = Convert.ToBoolean(reader["covande"]),
-                        NgayDat = Convert.ToDateTime(reader["ngaydat"])
+                        NgayDat = Convert.ToDateTime(reader["ngaydat"]),
+                        GiaTien = Convert.ToInt64(reader["giatien"])
                     });
                 }
                 return new { Success = true, Data = bookings };
@@ -915,52 +918,98 @@ namespace Nhom16_MVC.Services
                 return new { Success = false, Message = "Lỗi khi lấy danh sách đặt sân: " + ex.Message };
             }
         }
+
+        // 2. XỬ LÝ SỰ CỐ ĐẶT SÂN: Thêm tự động hoàn tiền vào ví khách khi đơn bị hủy
         public async Task<WithdrawalResponse> AdminResolveBookingIssueAsync(ResolveBookingIssueDto dto)
         {
+            using var conn = _dbService.GetConnection();
+            await conn.OpenAsync();
+
+            // Sử dụng Transaction để đảm bảo cập nhật trạng thái và hoàn tiền phải đi liền với nhau
+            using var transaction = await conn.BeginTransactionAsync();
             try
             {
-                using var conn = _dbService.GetConnection();
-                await conn.OpenAsync();
+                // Bước A: Lấy thông tin trạng thái cũ, số tiền đơn đặt và ID người thuê
+                string infoQuery = @"
+            SELECT ct.trangthaidatsan, ct.giatien, d.nguoidhthue 
+            FROM public.chitietdatsan ct
+            JOIN public.datsan d ON ct.madatsan = d.madatsan
+            WHERE ct.machitietdatsan = @maChiTiet";
 
-                // Cập nhật trạng thái mới và đánh dấu đã xử lý sự cố (coVanDe = false hoặc tùy admin chọn)
+                string trangThaiCu = "";
+                long giaTien = 0;
+                int maKhachHang = 0;
+
+                using (var cmdInfo = new NpgsqlCommand(infoQuery, conn, transaction))
+                {
+                    cmdInfo.Parameters.AddWithValue("@maChiTiet", dto.MaChiTietDatSan);
+                    using var reader = await cmdInfo.ExecuteReaderAsync();
+                    if (await reader.ReadAsync())
+                    {
+                        trangThaiCu = reader["trangthaidatsan"]?.ToString();
+                        giaTien = Convert.ToInt64(reader["giatien"]);
+                        maKhachHang = Convert.ToInt32(reader["nguoidhthue"]);
+                    }
+                    else
+                    {
+                        return new WithdrawalResponse { Success = false, Message = "Không tìm thấy chi tiết đơn đặt sân." };
+                    }
+                }
+
+                // Bước B: Cập nhật trạng thái sự cố đơn đặt sân
                 string updateQuery = @"
             UPDATE public.chitietdatsan 
             SET trangthaidatsan = @trangThai, covande = @coVanDe 
             WHERE machitietdatsan = @maChiTiet";
 
-                using (var cmd = new NpgsqlCommand(updateQuery, conn))
+                using (var cmdUpdate = new NpgsqlCommand(updateQuery, conn, transaction))
                 {
-                    cmd.Parameters.AddWithValue("@trangThai", dto.TrangThaiMoi);
-                    cmd.Parameters.AddWithValue("@coVanDe", dto.CoVanDe);
-                    cmd.Parameters.AddWithValue("@maChiTiet", dto.MaChiTietDatSan);
-
-                    int rowsAffected = await cmd.ExecuteNonQueryAsync();
-                    if (rowsAffected == 0)
-                    {
-                        return new WithdrawalResponse { Success = false, Message = "Không tìm thấy chi tiết đơn đặt sân này." };
-                    }
+                    cmdUpdate.Parameters.AddWithValue("@trangThai", dto.TrangThaiMoi);
+                    cmdUpdate.Parameters.AddWithValue("@coVanDe", dto.CoVanDe);
+                    cmdUpdate.Parameters.AddWithValue("@maChiTiet", dto.MaChiTietDatSan);
+                    await cmdUpdate.ExecuteNonQueryAsync();
                 }
 
-                // 💡 LOGIC NÂNG CAO: Nếu trạng thái mới là 'da_huy' và trước đó khách đã bị trừ tiền,
-                // bạn có thể viết thêm logic cộng hoàn tiền vào ví khách tại đây.
+                // Bước C: Nếu trạng thái đổi sang 'da_huy' và đơn trước đó chưa hủy -> Tiến hành hoàn tiền cho khách
+                if (dto.TrangThaiMoi == "da_huy" && trangThaiCu != "da_huy")
+                {
+                    string refundQuery = @"
+                UPDATE public.nguoidung 
+                SET sodutaikhoan = sodutaikhoan + @soTienHoan 
+                WHERE manguoidung = @maKhach";
 
-                return new WithdrawalResponse { Success = true, Message = "Xử lý và cập nhật đơn đặt sân thành công!" };
+                    using var cmdRefund = new NpgsqlCommand(refundQuery, conn, transaction);
+                    cmdRefund.Parameters.AddWithValue("@soTienHoan", giaTien);
+                    cmdRefund.Parameters.AddWithValue("@maKhach", maKhachHang);
+                    await cmdRefund.ExecuteNonQueryAsync();
+                }
+
+                await transaction.CommitAsync();
+
+                string message = dto.TrangThaiMoi == "da_huy"
+                    ? "Đã hủy đơn đặt sân do sự cố và hoàn trả tiền vào ví của khách hàng thành công!"
+                    : "Cập nhật trạng thái xử lý đơn đặt sân thành công!";
+
+                return new WithdrawalResponse { Success = true, Message = message };
             }
             catch (Exception ex)
             {
-                return new WithdrawalResponse { Success = false, Message = "Lỗi hệ thống: " + ex.Message };
+                await transaction.RollbackAsync();
+                return new WithdrawalResponse { Success = false, Message = "Lỗi hệ thống khi xử lý đơn đặt sân: " + ex.Message };
             }
         }
+
+        // 3. LẤY DANH SÁCH ĐÁNH GIÁ: Sửa chuẩn tên cột theo Database thực tế
         public async Task<object> AdminGetAllRatingsAsync()
         {
             var ratings = new List<object>();
-            // Sửa lại chuẩn xác tên các cột: nguoithue, diemso, thoigiandanhgia theo đúng DB của bạn
             string query = @"
         SELECT 
-            dg.madanhgia, nt.hoten AS ten_nguoi_thue, s.tensan, 
-            dg.diemso, dg.binhluan, dg.thoigiandanhgia
+            dg.madanhgia, dg.manguoidung, nd.hoten AS ten_nguoi_dung,
+            dg.masanbong, s.tensan AS ten_san_bong,
+            dg.sosao, dg.noidungdanhgia, dg.thoigiandanhgia
         FROM public.danhgia dg
-        JOIN public.nguoidung nt ON dg.nguoithue = nt.manguoidung
+        JOIN public.nguoidung nd ON dg.manguoidung = nd.manguoidung
         JOIN public.sanbong s ON dg.masanbong = s.masanbong
         ORDER BY dg.thoigiandanhgia DESC";
 
@@ -976,11 +1025,13 @@ namespace Nhom16_MVC.Services
                     ratings.Add(new
                     {
                         MaDanhGia = Convert.ToInt32(reader["madanhgia"]),
-                        TenNguoiThue = reader["ten_nguoi_thue"]?.ToString(),
-                        TenSanBong = reader["tensan"]?.ToString(),
-                        SoDiemDanhGia = Convert.ToInt32(reader["diemso"]),
-                        BinhLuan = reader["binhluan"]?.ToString() ?? "",
-                        NgayDanhGia = Convert.ToDateTime(reader["thoigiandanhgia"])
+                        MaNguoiDung = Convert.ToInt32(reader["manguoidung"]),
+                        TenNguoiDung = reader["ten_nguoi_dung"]?.ToString(),
+                        MaSanBong = Convert.ToInt32(reader["masanbong"]),
+                        TenSanBong = reader["ten_san_bong"]?.ToString(),
+                        SoSao = Convert.ToInt32(reader["sosao"]),
+                        NoiDungDanhGia = reader["noidungdanhgia"]?.ToString(),
+                        ThoiGianDanhGia = Convert.ToDateTime(reader["thoigiandanhgia"])
                     });
                 }
                 return new { Success = true, Data = ratings };
@@ -990,6 +1041,8 @@ namespace Nhom16_MVC.Services
                 return new { Success = false, Message = "Lỗi khi lấy danh sách đánh giá: " + ex.Message };
             }
         }
+
+        // 4. XÓA ĐÁNH GIÁ: Sửa lỗi trả về sai kiểu dữ liệu ở block catch
         public async Task<WithdrawalResponse> AdminDeleteRatingAsync(int maDanhGia)
         {
             string query = "DELETE FROM public.danhgia WHERE madanhgia = @maDanhGia";
@@ -1006,11 +1059,11 @@ namespace Nhom16_MVC.Services
                     return new WithdrawalResponse { Success = false, Message = "Không tìm thấy mã đánh giá này hoặc đánh giá đã bị xóa trước đó." };
                 }
 
-                return new WithdrawalResponse { Success = true, Message = "Đã gỡ bỏ đánh giá không phù hợp thành công!" };
+                return new WithdrawalResponse { Success = true, Message = "Đã gỡ bỏ đánh giá không phù hợp thành công! " };
             }
             catch (Exception ex)
             {
-                // 🟢 SỬA CHỖ NÀY: Khởi tạo đúng đối tượng WithdrawalResponse thay vì dùng new {} ẩn danh
+                // Đã sửa từ đối tượng ẩn danh sang định dạng chuẩn WithdrawalResponse
                 return new WithdrawalResponse
                 {
                     Success = false,
