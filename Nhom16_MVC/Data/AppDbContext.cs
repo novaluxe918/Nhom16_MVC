@@ -4,7 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using Nhom16_MVC.Models.Entities;
 using Nhom16_MVC.Models.Enums;
 
-namespace Nhom16_MVC.Models;
+namespace Nhom16_MVC.Data;
 
 public partial class AppDbContext : DbContext
 {
@@ -207,7 +207,7 @@ public partial class AppDbContext : DbContext
             entity.Property(e => e.phuongthuc)
                 .HasConversion(
                     v => v.ToString().ToLower(),
-                    v => Enum.Parse<PhuongThucNapEnum>(v, ignoreCase: true))
+                    v => Enum.Parse<PhuongThucNapEnum>(v, true))
                 .HasDefaultValue(PhuongThucNapEnum.VNPay);
 
             entity.Property(e => e.thoigiannap)
@@ -250,7 +250,7 @@ public partial class AppDbContext : DbContext
             entity.Property(e => e.vaitro)
                 .HasConversion(
                     v => v.ToString().Replace("_", "").ToLower(),
-                    v => Enum.Parse<VaiTroEnum>(v, ignoreCase: true))
+                    v => Enum.Parse<VaiTroEnum>(v, true))
                 .HasDefaultValue(VaiTroEnum.NguoiThue);
         });
 
