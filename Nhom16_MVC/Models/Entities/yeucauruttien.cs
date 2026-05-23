@@ -1,7 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
+using Nhom16_MVC.Models.Enums;
 
-namespace Nhom16_MVC.Models;
+namespace Nhom16_MVC.Models.Entities;
 
 public partial class yeucauruttien
 {
@@ -17,7 +18,7 @@ public partial class yeucauruttien
 
     public string? mota { get; set; }
 
-    public string? trangthai { get; set; }
+    public TrangThaiRutEnum trangthai { get; set; } = TrangThaiRutEnum.ChoXuLy;
 
     public string tennganhang { get; set; } = null!;
 

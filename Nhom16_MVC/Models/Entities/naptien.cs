@@ -1,7 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
+using Nhom16_MVC.Models.Enums;
 
-namespace Nhom16_MVC.Models;
+namespace Nhom16_MVC.Models.Entities;
 
 public partial class naptien
 {
@@ -15,7 +16,9 @@ public partial class naptien
 
     public string? magiaodich { get; set; }
 
-    public string? trangthai { get; set; }
+    public PhuongThucNapEnum? phuongthuc { get; set; } = PhuongThucNapEnum.VNPay;
+
+    public TrangThaiNapEnum trangthai { get; set; } = TrangThaiNapEnum.ChoXuLy;
 
     public virtual nguoidung nguoinapNavigation { get; set; } = null!;
 }

@@ -1,7 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
+using Nhom16_MVC.Models.Enums;
 
-namespace Nhom16_MVC.Models;
+namespace Nhom16_MVC.Models.Entities;
 
 public partial class chitietdatsan
 {
@@ -19,7 +20,7 @@ public partial class chitietdatsan
 
     public bool? covande { get; set; }
 
-    public string? trangthaidatsan { get; set; }
+    public TrangThaiDatEnum trangthaidatsan { get; set; } = TrangThaiDatEnum.ChoXacNhan;
 
     public virtual datsan madatsanNavigation { get; set; } = null!;
 

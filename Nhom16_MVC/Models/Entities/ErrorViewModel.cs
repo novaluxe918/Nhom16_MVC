@@ -1,4 +1,4 @@
-namespace Nhom16_MVC.Models
+namespace Nhom16_MVC.Models.Entities
 {
     public class ErrorViewModel
     {

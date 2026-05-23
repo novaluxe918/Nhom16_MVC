@@ -1,7 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
+using Nhom16_MVC.Models.Enums;
 
-namespace Nhom16_MVC.Models;
+namespace Nhom16_MVC.Models.Entities;
 
 public partial class nguoidung
 {
@@ -17,7 +18,7 @@ public partial class nguoidung
 
     public string matkhau { get; set; } = null!;
 
-    public string vaitro { get; set; } = null!;
+    public VaiTroEnum vaitro { get; set; } = VaiTroEnum.NguoiThue;
 
     public long sodutaikhoan { get; set; }
 

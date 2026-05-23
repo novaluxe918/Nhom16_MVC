@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
 using Microsoft.EntityFrameworkCore;
+using Nhom16_MVC.Models.Entities;
+using Nhom16_MVC.Models.Enums;
 
 namespace Nhom16_MVC.Models;
 
@@ -57,9 +59,14 @@ public partial class AppDbContext : DbContext
 
             entity.HasIndex(e => e.nguoinhan, "ix_chat_nguoinhan");
 
+            entity.HasIndex(e => e.daDoc, "ix_chat_dadoc");
+
             entity.Property(e => e.thoigiangui)
                 .HasDefaultValueSql("now()")
                 .HasColumnType("timestamp without time zone");
+
+            entity.Property(e => e.daDoc)
+                .HasDefaultValue(false);
 
             entity.HasOne(d => d.nguoiguiNavigation).WithMany(p => p.chatnguoiguiNavigation)
                 .HasForeignKey(d => d.nguoigui)
@@ -81,9 +88,12 @@ public partial class AppDbContext : DbContext
             entity.HasIndex(e => e.trangthaidatsan, "ix_chitietdatsan_trangthai");
 
             entity.Property(e => e.covande).HasDefaultValue(false);
+
             entity.Property(e => e.trangthaidatsan)
-                .HasMaxLength(50)
-                .HasDefaultValueSql("'cho_xac_nhan'::character varying");
+                .HasConversion(
+                    v => v.ToString().Replace("_", ""),
+                    v => Enum.Parse<TrangThaiDatEnum>(v))
+                .HasDefaultValue(TrangThaiDatEnum.ChoXacNhan);
 
             entity.HasOne(d => d.madatsanNavigation).WithMany(p => p.chitietdatsan)
                 .HasForeignKey(d => d.madatsan)
@@ -193,12 +203,22 @@ public partial class AppDbContext : DbContext
             entity.HasIndex(e => e.magiaodich, "naptien_magiaodich_key").IsUnique();
 
             entity.Property(e => e.magiaodich).HasMaxLength(100);
+
+            entity.Property(e => e.phuongthuc)
+                .HasConversion(
+                    v => v.ToString().ToLower(),
+                    v => Enum.Parse<PhuongThucNapEnum>(v, ignoreCase: true))
+                .HasDefaultValue(PhuongThucNapEnum.VNPay);
+
             entity.Property(e => e.thoigiannap)
                 .HasDefaultValueSql("now()")
                 .HasColumnType("timestamp without time zone");
+
             entity.Property(e => e.trangthai)
-                .HasMaxLength(50)
-                .HasDefaultValueSql("'cho_xu_ly'::character varying");
+                .HasConversion(
+                    v => v.ToString().Replace("_", ""),
+                    v => Enum.Parse<TrangThaiNapEnum>(v))
+                .HasDefaultValue(TrangThaiNapEnum.ChoXuLy);
 
             entity.HasOne(d => d.nguoinapNavigation).WithMany(p => p.naptien)
                 .HasForeignKey(d => d.nguoinap)
@@ -226,9 +246,12 @@ public partial class AppDbContext : DbContext
             entity.Property(e => e.sodienthoai).HasMaxLength(15);
             entity.Property(e => e.sodutaikhoan).HasDefaultValue(0L);
             entity.Property(e => e.tokenexpiry).HasColumnType("timestamp without time zone");
+
             entity.Property(e => e.vaitro)
-                .HasMaxLength(50)
-                .HasDefaultValueSql("'nguoiThue'::character varying");
+                .HasConversion(
+                    v => v.ToString().Replace("_", "").ToLower(),
+                    v => Enum.Parse<VaiTroEnum>(v, ignoreCase: true))
+                .HasDefaultValue(VaiTroEnum.NguoiThue);
         });
 
         modelBuilder.Entity<sanbong>(entity =>
@@ -304,9 +327,12 @@ public partial class AppDbContext : DbContext
             entity.Property(e => e.thoigianrut)
                 .HasDefaultValueSql("now()")
                 .HasColumnType("timestamp without time zone");
+
             entity.Property(e => e.trangthai)
-                .HasMaxLength(50)
-                .HasDefaultValueSql("'cho_xu_ly'::character varying");
+                .HasConversion(
+                    v => v.ToString().Replace("_", ""),
+                    v => Enum.Parse<TrangThaiRutEnum>(v))
+                .HasDefaultValue(TrangThaiRutEnum.ChoXuLy);
 
             entity.HasOne(d => d.manguoidungNavigation).WithMany(p => p.yeucauruttien)
                 .HasForeignKey(d => d.manguoidung)

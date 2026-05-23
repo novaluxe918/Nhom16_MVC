@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 
-namespace Nhom16_MVC.Models;
+namespace Nhom16_MVC.Models.Entities;
 
 public partial class sanbongratingsummary
 {
