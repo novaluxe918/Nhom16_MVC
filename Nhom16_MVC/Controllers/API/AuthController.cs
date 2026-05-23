@@ -262,6 +262,29 @@ namespace Nhom16_MVC.Controllers.API
             }
             return Ok(response);
         }
+
+        [HttpGet("admin/ratings")]
+        public async Task<IActionResult> AdminGetAllRatings()
+        {
+            var result = await _authService.AdminGetAllRatingsAsync();
+            return Ok(result);
+        }
+
+        [HttpDelete("admin/delete-rating")]
+        public async Task<IActionResult> AdminDeleteRating([FromBody] DeleteRatingDto request)
+        {
+            if (request == null || request.MaDanhGia <= 0)
+            {
+                return BadRequest(new WithdrawalResponse { Success = false, Message = "Mã đánh giá không hợp lệ." });
+            }
+
+            var response = await _authService.AdminDeleteRatingAsync(request.MaDanhGia);
+            if (!response.Success)
+            {
+                return BadRequest(response);
+            }
+            return Ok(response);
+        }
     }
     public class ResendVerificationRequest
     {

@@ -951,5 +951,72 @@ namespace Nhom16_MVC.Services
                 return new WithdrawalResponse { Success = false, Message = "Lỗi hệ thống: " + ex.Message };
             }
         }
+        public async Task<object> AdminGetAllRatingsAsync()
+        {
+            var ratings = new List<object>();
+            // Sửa lại chuẩn xác tên các cột: nguoithue, diemso, thoigiandanhgia theo đúng DB của bạn
+            string query = @"
+        SELECT 
+            dg.madanhgia, nt.hoten AS ten_nguoi_thue, s.tensan, 
+            dg.diemso, dg.binhluan, dg.thoigiandanhgia
+        FROM public.danhgia dg
+        JOIN public.nguoidung nt ON dg.nguoithue = nt.manguoidung
+        JOIN public.sanbong s ON dg.masanbong = s.masanbong
+        ORDER BY dg.thoigiandanhgia DESC";
+
+            try
+            {
+                using var conn = _dbService.GetConnection();
+                await conn.OpenAsync();
+                using var cmd = new NpgsqlCommand(query, conn);
+                using var reader = await cmd.ExecuteReaderAsync();
+
+                while (await reader.ReadAsync())
+                {
+                    ratings.Add(new
+                    {
+                        MaDanhGia = Convert.ToInt32(reader["madanhgia"]),
+                        TenNguoiThue = reader["ten_nguoi_thue"]?.ToString(),
+                        TenSanBong = reader["tensan"]?.ToString(),
+                        SoDiemDanhGia = Convert.ToInt32(reader["diemso"]),
+                        BinhLuan = reader["binhluan"]?.ToString() ?? "",
+                        NgayDanhGia = Convert.ToDateTime(reader["thoigiandanhgia"])
+                    });
+                }
+                return new { Success = true, Data = ratings };
+            }
+            catch (Exception ex)
+            {
+                return new { Success = false, Message = "Lỗi khi lấy danh sách đánh giá: " + ex.Message };
+            }
+        }
+        public async Task<WithdrawalResponse> AdminDeleteRatingAsync(int maDanhGia)
+        {
+            string query = "DELETE FROM public.danhgia WHERE madanhgia = @maDanhGia";
+            try
+            {
+                using var conn = _dbService.GetConnection();
+                await conn.OpenAsync();
+                using var cmd = new NpgsqlCommand(query, conn);
+                cmd.Parameters.AddWithValue("@maDanhGia", maDanhGia);
+
+                int rowsAffected = await cmd.ExecuteNonQueryAsync();
+                if (rowsAffected == 0)
+                {
+                    return new WithdrawalResponse { Success = false, Message = "Không tìm thấy mã đánh giá này hoặc đánh giá đã bị xóa trước đó." };
+                }
+
+                return new WithdrawalResponse { Success = true, Message = "Đã gỡ bỏ đánh giá không phù hợp thành công!" };
+            }
+            catch (Exception ex)
+            {
+                // 🟢 SỬA CHỖ NÀY: Khởi tạo đúng đối tượng WithdrawalResponse thay vì dùng new {} ẩn danh
+                return new WithdrawalResponse
+                {
+                    Success = false,
+                    Message = "Lỗi hệ thống khi xóa đánh giá: " + ex.Message
+                };
+            }
+        }
     }
 }
