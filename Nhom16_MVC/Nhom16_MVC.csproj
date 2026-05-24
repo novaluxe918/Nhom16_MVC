@@ -17,9 +17,13 @@
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
     <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="8.0.0" />
+    <PackageReference Include="Swashbuckle.AspNetCore" Version="10.1.7" />
   </ItemGroup>
 
   <ItemGroup>
+    <Folder Include="fe\src\pages\Admin\" />
+    <Folder Include="fe\src\pages\Auth\" />
+    <Folder Include="fe\src\pages\Owner\" />
     <Folder Include="Helpers\" />
   </ItemGroup>
 
