@@ -18,7 +18,7 @@ public partial class chitietdatsan
 
     public DateTime gioketthuc { get; set; }
 
-    public bool? covande { get; set; }
+    public bool covande { get; set; } = false;
 
     public TrangThaiDatEnum trangthaidatsan { get; set; } = TrangThaiDatEnum.ChoXacNhan;
 
