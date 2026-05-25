@@ -1,6 +1,9 @@
 using Microsoft.EntityFrameworkCore;
 using Nhom16_MVC.Services;
 using System;
+using Nhom16_MVC.Data;
+using Nhom16_MVC.Services;
+
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -13,6 +16,11 @@ builder.Services.AddControllersWithViews();
 builder.Services.AddSingleton<DatabaseService>();
 
 
+builder.Services.AddScoped<SearchService>();
+builder.Services.AddScoped<AvailableFieldService>();
+
+//swagger
+builder.Services.AddSwaggerGen();
 
 // Swagger
 builder.Services.AddEndpointsApiExplorer();
@@ -21,9 +29,12 @@ builder.Services.AddSwaggerGen();
 
 var app = builder.Build();
 
-// =========================
-// Configure middleware
-// =========================
+
+if(app.Environment.IsDevelopment())
+{
+    app.UseSwagger();
+    app.UseSwaggerUI();
+}
 
 if (app.Environment.IsDevelopment())
 {
