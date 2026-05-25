@@ -16,6 +16,7 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 
 
 builder.Services.AddScoped<SearchService>();
+builder.Services.AddScoped<AvailableFieldService>();
 
 //swagger
 builder.Services.AddSwaggerGen();

@@ -33,6 +33,8 @@ public partial class sanbong
 
     public DateTime? createdat { get; set; }
 
+    public DateTime? updatedat { get; set; }
+
     public virtual nguoidung chusanNavigation { get; set; } = null!;
 
     public virtual ICollection<danhgia> danhgia { get; set; } = new List<danhgia>();

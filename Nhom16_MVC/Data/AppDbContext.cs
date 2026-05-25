@@ -79,6 +79,10 @@ public partial class AppDbContext : DbContext
 
         modelBuilder.Entity<chitietdatsan>(entity =>
         {
+            entity.Property(e => e.giobatdau)
+                .HasColumnType("timestamp without time zone");
+            entity.Property(e => e.gioketthuc)
+                .HasColumnType("timestamp without time zone");
             entity.HasKey(e => e.machitietdatsan).HasName("chitietdatsan_pkey");
 
             entity.HasIndex(e => e.madatsan, "ix_chitietdatsan_datsan");
@@ -280,6 +284,9 @@ public partial class AppDbContext : DbContext
                 .HasForeignKey(d => d.chusan)
                 .OnDelete(DeleteBehavior.Restrict)
                 .HasConstraintName("sanbong_chusan_fkey");
+            entity.Property(e => e.updatedat)
+                .HasColumnName("updatedat")
+                .HasColumnType("timestamp without time zone");
         });
 
         modelBuilder.Entity<sanbongchitiet>(entity =>
@@ -337,6 +344,7 @@ public partial class AppDbContext : DbContext
             entity.HasOne(d => d.manguoidungNavigation).WithMany(p => p.yeucauruttien)
                 .HasForeignKey(d => d.manguoidung)
                 .HasConstraintName("yeucauruttien_manguoidung_fkey");
+            
         });
 
         OnModelCreatingPartial(modelBuilder);

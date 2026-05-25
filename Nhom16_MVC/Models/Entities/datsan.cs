@@ -13,6 +13,8 @@ public partial class datsan
 
     public DateTime? ngaythanhtoan { get; set; }
 
+    public long sotienthanhtoan { get; set; }
+
     public virtual ICollection<chitietdatsan> chitietdatsan { get; set; } = new List<chitietdatsan>();
 
     public virtual nguoidung nguoithueNavigation { get; set; } = null!;

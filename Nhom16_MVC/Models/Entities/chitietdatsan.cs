@@ -14,9 +14,9 @@ public partial class chitietdatsan
 
     public int? maloaidat { get; set; }
 
-    public TimeOnly giobatdau { get; set; }
+    public DateTime giobatdau { get; set; }
 
-    public TimeOnly gioketthuc { get; set; }
+    public DateTime gioketthuc { get; set; }
 
     public bool? covande { get; set; }
 

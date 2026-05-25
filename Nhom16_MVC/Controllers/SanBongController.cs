@@ -10,11 +10,13 @@ namespace Nhom16_MVC.Controllers
     {
 
         private readonly SearchService _searchService;
+        private readonly AvailableFieldService _availableFieldService;
 
-        
-        public SanBongController(SearchService searchService)
+
+        public SanBongController(SearchService searchService, AvailableFieldService availableFieldService)
         {
             _searchService = searchService;
+            _availableFieldService = availableFieldService;
         }
 
         [HttpGet("goi-y")]
@@ -22,7 +24,7 @@ namespace Nhom16_MVC.Controllers
         {
             if (string.IsNullOrWhiteSpace(q))
             {
-               
+
                 return BadRequest(new searchSuggestResponse
                 {
                     Success = false,
@@ -31,7 +33,7 @@ namespace Nhom16_MVC.Controllers
                 });
             }
 
-          
+
             var suggestions = await _searchService.GetSuggestionsAsync(q);
 
             return Ok(new searchSuggestResponse
@@ -40,6 +42,24 @@ namespace Nhom16_MVC.Controllers
                 Suggestions = suggestions,
                 Message = suggestions.Count > 0 ? "Tìm kiếm thành công" : "Không tìm thấy sân bóng"
             });
+        }
+
+        /// Tìm kiếm sân trống theo khung giờ
+
+        [HttpPost("tim-kiem-san-trong")]
+        public async Task<IActionResult> SearchAvailableFields([FromBody] SearchAvailableFieldsRequest request)
+        {
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(new SearchAvailableFieldsResponse
+                {
+                    Success = false,
+                    Message = "Dữ liệu không hợp lệ"
+                });
+            }
+
+            var result = await _availableFieldService.SearchAvailableFieldsAsync(request);
+            return Ok(result);
         }
     }
 }

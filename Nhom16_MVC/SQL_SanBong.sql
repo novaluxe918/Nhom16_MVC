@@ -46,7 +46,7 @@ CREATE TABLE SANBONG (
     kinhDo      DECIMAL(11,8),               
     viDo        DECIMAL(10,8),               
     createdAt   TIMESTAMP     DEFAULT NOW(),
-    updatedAt   TIMESTAMP     DEFAULT NOW()   -- Thêm updatedAt (Vấn đề 5)
+    updatedAt   TIMESTAMP     DEFAULT NOW()   
 );
 
 CREATE INDEX IX_SanBong_ChuSan  ON SANBONG(chuSan);
