@@ -28,6 +28,10 @@ public partial class nguoidung
 
     public string? verificationtoken { get; set; }
 
+    public string? resetToken { get; set; }
+
+    public DateTime? resetTokenExpiry { get; set; }
+
     public DateTime? tokenexpiry { get; set; }
 
     public virtual ICollection<chat> chatnguoiguiNavigation { get; set; } = new List<chat>();
