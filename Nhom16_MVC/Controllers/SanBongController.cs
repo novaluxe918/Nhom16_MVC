@@ -11,16 +11,12 @@ namespace Nhom16_MVC.Controllers
 
         private readonly SearchService _searchService;
         private readonly AvailableFieldService _availableFieldService;
-        private readonly ISanBongService _service;
 
 
-
-
-        public SanBongController(SearchService searchService, AvailableFieldService availableFieldService, ISanBongService service)
+        public SanBongController(SearchService searchService, AvailableFieldService availableFieldService)
         {
             _searchService = searchService;
             _availableFieldService = availableFieldService;
-            _service = service;
         }
 
         [HttpGet("goi-y")]
@@ -65,58 +61,5 @@ namespace Nhom16_MVC.Controllers
             var result = await _availableFieldService.SearchAvailableFieldsAsync(request);
             return Ok(result);
         }
-
-         [HttpGet]
-        public async Task<IActionResult> LayTatCa()
-        {
-            var data = await _service.LayTatCa();
-
-            return Ok(data);
-        }
-
-          [HttpGet("{id}")]
-        public async Task<IActionResult> LayTheoId(int id)
-        {
-            var data = await _service.LayTheoId(id);
-
-            if (data == null)
-                return NotFound("Không tìm thấy sân bóng");
-
-            return Ok(data);
-        }
-
-        [HttpPost]
-        public async Task<IActionResult> TaoSan([FromBody] CreateSanBongDto dto)
-        {
-            var result = await _service.TaoSan(dto);
-
-            if (!result)
-                return BadRequest("Tạo sân thất bại");
-
-            return Ok("Tạo sân thành công");
-        }
-
-        [HttpPut("{id}")]
-        public async Task<IActionResult> CapNhatSan(int id, [FromBody] UpdateSanBongDto dto)
-        {
-            var result = await _service.CapNhatSan(id, dto);
-
-            if (!result)
-                return NotFound("Không tìm thấy sân bóng");
-
-            return Ok("Cập nhật thành công");
-        }
-
-        [HttpDelete("{id}")]
-        public async Task<IActionResult> XoaSan(int id)
-        {
-            var result = await _service.XoaSan(id);
-
-            if (!result)
-                return NotFound("Không tìm thấy sân bóng");
-
-            return Ok("Xóa thành công");
-        }
-
     }
 }

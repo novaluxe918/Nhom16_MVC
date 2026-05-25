@@ -283,7 +283,9 @@ public partial class AppDbContext : DbContext
                 .HasForeignKey(d => d.chusan)
                 .OnDelete(DeleteBehavior.Restrict)
                 .HasConstraintName("sanbong_chusan_fkey");
-          
+            entity.Property(e => e.updatedat)
+                .HasColumnName("updatedat")
+                .HasColumnType("timestamp without time zone");
         });
 
         modelBuilder.Entity<sanbongchitiet>(entity =>
