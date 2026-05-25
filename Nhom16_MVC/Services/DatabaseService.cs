@@ -9,7 +9,7 @@ namespace Nhom16_MVC.Services
 
         public DatabaseService(IConfiguration configuration)
         {
-            _connectionString = configuration.GetConnectionString("PostgreSQL");
+            _connectionString = configuration.GetConnectionString("DefaultConnection");
         }
 
         public NpgsqlConnection GetConnection()
