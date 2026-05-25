@@ -26,6 +26,7 @@
   <ItemGroup>
     <Folder Include="Helpers\" />
     <Folder Include="Repositories\" />
+    <Folder Include="Models\DTOs\" />
   </ItemGroup>
 
 </Project>
