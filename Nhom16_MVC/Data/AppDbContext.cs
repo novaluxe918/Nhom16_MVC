@@ -45,11 +45,9 @@ public partial class AppDbContext : DbContext
 
     public virtual DbSet<yeucauruttien> yeucauruttien { get; set; }
 
-<<<<<<< HEAD
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         => optionsBuilder.UseNpgsql("Host=ep-round-meadow-aozuay67-pooler.c-2.ap-southeast-1.aws.neon.tech;Port=5432;Database=neondb;Username=neondb_owner;Password=npg_LZkF4o6huAwt;SSL Mode=Require");
-=======
->>>>>>> origin/feature/NTS_ThietLapCoBan
+
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

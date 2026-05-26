@@ -1,7 +1,11 @@
 using Microsoft.EntityFrameworkCore;
 using Nhom16_MVC.Data;
 using Nhom16_MVC.Repositories;
+
 using Nhom16_MVC.Services;
+using Nhom16_MVC.Repositories.Interfaces;
+using Nhom16_MVC.Services;
+using Nhom16_MVC.Services.Interfaces;
 
 var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddDbContext<AppDbContext>(options =>
@@ -23,9 +27,12 @@ builder.Services.AddScoped<AvailableFieldService>();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
+
 builder.Services.AddScoped<ISanBongRepository, SanBongRepository>();
 
 builder.Services.AddScoped<ISanBongService, SanBongService>();
+builder.Services.AddScoped<IBangGiaRepository, BangGiaRepository>();
+builder.Services.AddScoped<IBangGiaService, BangGiaService>();
 var app = builder.Build();
 
 // =========================
