@@ -26,6 +26,7 @@ builder.Services.AddControllers();
 builder.Services.AddScoped<EmailHelper>();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
+builder.Services.AddScoped<Nhom16_MVC.Services.IAuthService, Nhom16_MVC.Services.AuthService>();
 
 // JWT Configuration
 var jwtSettings = builder.Configuration.GetSection("JwtSettings");
