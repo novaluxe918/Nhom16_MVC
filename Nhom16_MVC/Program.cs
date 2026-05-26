@@ -46,6 +46,12 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
 
 builder.Services.AddAuthorization();
 
+
+builder.Services.AddScoped<ISanBongRepository, SanBongRepository>();
+
+builder.Services.AddScoped<ISanBongService, SanBongService>();
+builder.Services.AddScoped<IBangGiaRepository, BangGiaRepository>();
+builder.Services.AddScoped<IBangGiaService, BangGiaService>();
 var app = builder.Build();
 
 if (app.Environment.IsDevelopment())
