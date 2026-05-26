@@ -18,7 +18,7 @@ public partial class nguoidung
 
     public string matkhau { get; set; } = null!;
 
-    public VaiTroEnum vaitro { get; set; } = VaiTroEnum.NguoiThue;
+    public VaiTroEnum vaitro { get; set; }
 
     public long sodutaikhoan { get; set; }
 
@@ -26,13 +26,13 @@ public partial class nguoidung
 
     public bool? isemailverified { get; set; }
 
+    // Sử dụng trường này làm OTP khôi phục/xác thực mật khẩu (Khớp với DB)
     public string? verificationtoken { get; set; }
 
-    public string? resetToken { get; set; }
-
-    public DateTime? resetTokenExpiry { get; set; }
-
+    // Sử dụng trường này làm thời hạn của OTP (Khớp với DB)
     public DateTime? tokenexpiry { get; set; }
+
+    // Đã xóa bỏ hoàn toàn resetToken và resetTokenExpiry để tránh lỗi DbUpdateException
 
     public virtual ICollection<chat> chatnguoiguiNavigation { get; set; } = new List<chat>();
 

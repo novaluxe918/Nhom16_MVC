@@ -1,32 +1,51 @@
+﻿using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
-using Nhom16_MVC.Services;
+using Microsoft.IdentityModel.Tokens;
 using Nhom16_MVC.Data;
+using Nhom16_MVC.Helpers;
+using Nhom16_MVC.Models.Enums; // Đảm bảo namespace này chứa VaiTroEnum
+using Npgsql;
+using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
+
+// 1. Cấu hình NpgsqlDataSource để Map Enum (Cách duy nhất để Postgres hiểu kiểu dữ liệu custom)
+var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
+var dataSourceBuilder = new NpgsqlDataSourceBuilder(connectionString);
+// Map tất cả các Enum bạn có trong SQL vào đây
+dataSourceBuilder.MapEnum<VaiTroEnum>("vai_tro_enum");
+// Ví dụ nếu bạn có thêm các enum khác:
+// dataSourceBuilder.MapEnum<TrangThaiDatEnum>("trang_thai_dat");
+var dataSource = dataSourceBuilder.Build();
+
+// 2. Đăng ký DbContext với dataSource đã được cấu hình Enum
+
 builder.Services.AddDbContext<AppDbContext>(options =>
-    options.UseNpgsql(
-        builder.Configuration.GetConnectionString("DefaultConnection")));
-
-// =========================
-// Add services
-// =========================
-
+    options.UseNpgsql(dataSource));
 builder.Services.AddControllers();
-
-builder.Services.AddSingleton<DatabaseService>();
-
-builder.Services.AddScoped<SearchService>();
-builder.Services.AddScoped<AvailableFieldService>();
-
-// Swagger
+builder.Services.AddScoped<EmailHelper>();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
-var app = builder.Build();
+// JWT Configuration
+var jwtSettings = builder.Configuration.GetSection("JwtSettings");
+var secretKey = jwtSettings["SecretKey"] ?? "Chon_Mot_Chuoi_Key_That_Dai_Va_Bao_Mat_Nhom16_SportSync_2026";
 
-// =========================
-// Middleware
-// =========================
+builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+    .AddJwtBearer(options =>
+    {
+        options.TokenValidationParameters = new TokenValidationParameters
+        {
+            ValidateIssuerSigningKey = true,
+            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secretKey)),
+            ValidateIssuer = false,
+            ValidateAudience = false
+        };
+    });
+
+builder.Services.AddAuthorization();
+
+var app = builder.Build();
 
 if (app.Environment.IsDevelopment())
 {
@@ -35,14 +54,8 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
-
-app.UseStaticFiles();
-
-app.UseRouting();
-
+app.UseAuthentication();
 app.UseAuthorization();
-
-// API Controllers
 app.MapControllers();
 
 app.Run();

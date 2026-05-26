@@ -18,57 +18,37 @@ public partial class AppDbContext : DbContext
     }
 
     public virtual DbSet<chat> chat { get; set; }
-
     public virtual DbSet<chitietdatsan> chitietdatsan { get; set; }
-
     public virtual DbSet<danhgia> danhgia { get; set; }
-
     public virtual DbSet<datsan> datsan { get; set; }
-
     public virtual DbSet<loaihinhdat> loaihinhdat { get; set; }
-
     public virtual DbSet<loaisan> loaisan { get; set; }
-
     public virtual DbSet<media_sanbong> media_sanbong { get; set; }
-
     public virtual DbSet<media_sanbongchitiet> media_sanbongchitiet { get; set; }
-
     public virtual DbSet<naptien> naptien { get; set; }
-
     public virtual DbSet<nguoidung> nguoidung { get; set; }
-
     public virtual DbSet<sanbong> sanbong { get; set; }
-
     public virtual DbSet<sanbongchitiet> sanbongchitiet { get; set; }
-
     public virtual DbSet<sanbongratingsummary> sanbongratingsummary { get; set; }
-
     public virtual DbSet<yeucauruttien> yeucauruttien { get; set; }
 
-<<<<<<< HEAD
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         => optionsBuilder.UseNpgsql("Host=ep-round-meadow-aozuay67-pooler.c-2.ap-southeast-1.aws.neon.tech;Port=5432;Database=neondb;Username=neondb_owner;Password=npg_LZkF4o6huAwt;SSL Mode=Require");
-=======
->>>>>>> origin/feature/NTS_ThietLapCoBan
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.Entity<chat>(entity =>
         {
             entity.HasKey(e => e.matinnhan).HasName("chat_pkey");
-
             entity.HasIndex(e => e.nguoigui, "ix_chat_nguoigui");
-
             entity.HasIndex(e => e.nguoinhan, "ix_chat_nguoinhan");
-
             entity.HasIndex(e => e.daDoc, "ix_chat_dadoc");
 
             entity.Property(e => e.thoigiangui)
                 .HasDefaultValueSql("now()")
                 .HasColumnType("timestamp without time zone");
 
-            entity.Property(e => e.daDoc)
-                .HasDefaultValue(false);
+            entity.Property(e => e.daDoc).HasDefaultValue(false);
 
             entity.HasOne(d => d.nguoiguiNavigation).WithMany(p => p.chatnguoiguiNavigation)
                 .HasForeignKey(d => d.nguoigui)
@@ -81,16 +61,12 @@ public partial class AppDbContext : DbContext
 
         modelBuilder.Entity<chitietdatsan>(entity =>
         {
-            entity.Property(e => e.giobatdau)
-                .HasColumnType("timestamp without time zone");
-            entity.Property(e => e.gioketthuc)
-                .HasColumnType("timestamp without time zone");
+            entity.Property(e => e.giobatdau).HasColumnType("timestamp without time zone");
+            entity.Property(e => e.gioketthuc).HasColumnType("timestamp without time zone");
             entity.HasKey(e => e.machitietdatsan).HasName("chitietdatsan_pkey");
 
             entity.HasIndex(e => e.madatsan, "ix_chitietdatsan_datsan");
-
             entity.HasIndex(e => e.masanchitiet, "ix_chitietdatsan_sanchitiet");
-
             entity.HasIndex(e => e.trangthaidatsan, "ix_chitietdatsan_trangthai");
 
             entity.Property(e => e.covande).HasDefaultValue(false);
@@ -119,9 +95,7 @@ public partial class AppDbContext : DbContext
         modelBuilder.Entity<danhgia>(entity =>
         {
             entity.HasKey(e => e.madanhgia).HasName("danhgia_pkey");
-
             entity.HasIndex(e => e.nguoithue, "ix_danhgia_nguoithue");
-
             entity.HasIndex(e => e.masanbong, "ix_danhgia_sanbong");
 
             entity.Property(e => e.thoigiandanhgia)
@@ -140,9 +114,7 @@ public partial class AppDbContext : DbContext
         modelBuilder.Entity<datsan>(entity =>
         {
             entity.HasKey(e => e.madatsan).HasName("datsan_pkey");
-
             entity.HasIndex(e => e.ngaydat, "ix_datsan_ngaydat");
-
             entity.HasIndex(e => e.nguoithue, "ix_datsan_nguoithue");
 
             entity.Property(e => e.ngaydat).HasDefaultValueSql("CURRENT_DATE");
@@ -157,21 +129,18 @@ public partial class AppDbContext : DbContext
         modelBuilder.Entity<loaihinhdat>(entity =>
         {
             entity.HasKey(e => e.maloaidat).HasName("loaihinhdat_pkey");
-
             entity.Property(e => e.tenloaidat).HasMaxLength(100);
         });
 
         modelBuilder.Entity<loaisan>(entity =>
         {
             entity.HasKey(e => e.maloaisan).HasName("loaisan_pkey");
-
             entity.Property(e => e.tenloaisan).HasMaxLength(100);
         });
 
         modelBuilder.Entity<media_sanbong>(entity =>
         {
             entity.HasKey(e => e.mamedia).HasName("media_sanbong_pkey");
-
             entity.HasIndex(e => e.masanbong, "ix_mediasanbong_sanbong");
 
             entity.Property(e => e.loaimedia).HasMaxLength(20);
@@ -186,7 +155,6 @@ public partial class AppDbContext : DbContext
         modelBuilder.Entity<media_sanbongchitiet>(entity =>
         {
             entity.HasKey(e => e.mamedia).HasName("media_sanbongchitiet_pkey");
-
             entity.HasIndex(e => e.masanbongchitiet, "ix_mediachitiet_sanchitiet");
 
             entity.Property(e => e.loaimedia).HasMaxLength(20);
@@ -201,15 +169,11 @@ public partial class AppDbContext : DbContext
         modelBuilder.Entity<naptien>(entity =>
         {
             entity.HasKey(e => e.manaptien).HasName("naptien_pkey");
-
             entity.HasIndex(e => e.nguoinap, "ix_naptien_nguoinap");
-
             entity.HasIndex(e => e.trangthai, "ix_naptien_trangthai");
-
             entity.HasIndex(e => e.magiaodich, "naptien_magiaodich_key").IsUnique();
 
             entity.Property(e => e.magiaodich).HasMaxLength(100);
-
 
             entity.Property(e => e.phuongthuc)
                 .HasConversion(
@@ -235,13 +199,9 @@ public partial class AppDbContext : DbContext
         modelBuilder.Entity<nguoidung>(entity =>
         {
             entity.HasKey(e => e.manguoidung).HasName("nguoidung_pkey");
-
             entity.HasIndex(e => e.email, "ix_nguoidung_email");
-
             entity.HasIndex(e => e.vaitro, "ix_nguoidung_vaitro");
-
             entity.HasIndex(e => e.email, "nguoidung_email_key").IsUnique();
-
             entity.HasIndex(e => e.sodienthoai, "nguoidung_sodienthoai_key").IsUnique();
 
             entity.Property(e => e.createdat)
@@ -254,21 +214,20 @@ public partial class AppDbContext : DbContext
             entity.Property(e => e.sodutaikhoan).HasDefaultValue(0L);
             entity.Property(e => e.tokenexpiry).HasColumnType("timestamp without time zone");
 
+            // ✅ FIX CHÍNH: Cấu hình enum để EF Core gửi string thay vì int
             entity.Property(e => e.vaitro)
+                .HasColumnName("vaitro")
+                .HasColumnType("vai_tro_enum")
                 .HasConversion(
-                    v => v.ToString().Replace("_", "").ToLower(),
-                    v => Enum.Parse<VaiTroEnum>(v, true))
-                .HasDefaultValue(VaiTroEnum.NguoiThue);
-            entity.Property(e => e.resetTokenExpiry).HasColumnType("timestamp without time zone");
-            entity.Property(e => e.resetToken).HasMaxLength(255);
+                    v => v.ToString(),  // C# enum → PostgreSQL enum (string)
+                    v => (VaiTroEnum)Enum.Parse(typeof(VaiTroEnum), v))  // PostgreSQL enum → C# enum
+                .HasDefaultValue(VaiTroEnum.nguoiThue);
         });
 
         modelBuilder.Entity<sanbong>(entity =>
         {
             entity.HasKey(e => e.masanbong).HasName("sanbong_pkey");
-
             entity.HasIndex(e => e.chusan, "ix_sanbong_chusan");
-
             entity.HasIndex(e => e.daduyet, "ix_sanbong_daduyet");
 
             entity.Property(e => e.createdat)
@@ -289,6 +248,7 @@ public partial class AppDbContext : DbContext
                 .HasForeignKey(d => d.chusan)
                 .OnDelete(DeleteBehavior.Restrict)
                 .HasConstraintName("sanbong_chusan_fkey");
+
             entity.Property(e => e.updatedat)
                 .HasColumnName("updatedat")
                 .HasColumnType("timestamp without time zone");
@@ -297,9 +257,7 @@ public partial class AppDbContext : DbContext
         modelBuilder.Entity<sanbongchitiet>(entity =>
         {
             entity.HasKey(e => e.masanchitiet).HasName("sanbongchitiet_pkey");
-
             entity.HasIndex(e => e.maloaisan, "ix_sanchitiet_loaisan");
-
             entity.HasIndex(e => e.masanbong, "ix_sanchitiet_sanbong");
 
             entity.Property(e => e.giathuebuoisang).HasDefaultValue(0L);
@@ -318,19 +276,14 @@ public partial class AppDbContext : DbContext
 
         modelBuilder.Entity<sanbongratingsummary>(entity =>
         {
-            entity
-                .HasNoKey()
-                .ToView("sanbongratingsummary");
+            entity.HasNoKey().ToView("sanbongratingsummary");
         });
 
         modelBuilder.Entity<yeucauruttien>(entity =>
         {
             entity.HasKey(e => e.mayeucau).HasName("yeucauruttien_pkey");
-
             entity.HasIndex(e => e.manguoidung, "ix_ruttien_nguoidung");
-
             entity.HasIndex(e => e.trangthai, "ix_ruttien_trangthai");
-
             entity.HasIndex(e => e.magiaodich, "yeucauruttien_magiaodich_key").IsUnique();
 
             entity.Property(e => e.magiaodich).HasMaxLength(100);
@@ -349,7 +302,6 @@ public partial class AppDbContext : DbContext
             entity.HasOne(d => d.manguoidungNavigation).WithMany(p => p.yeucauruttien)
                 .HasForeignKey(d => d.manguoidung)
                 .HasConstraintName("yeucauruttien_manguoidung_fkey");
-            
         });
 
         OnModelCreatingPartial(modelBuilder);
