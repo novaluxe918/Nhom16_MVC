@@ -24,6 +24,7 @@ namespace Nhom16_MVC.Services
         public string Email { get; set; } = string.Empty;
         public string HoTen { get; set; } = string.Empty;
         public string VaiTro { get; set; } = string.Empty;
+        public string Token { get; set; } = string.Empty; // Thêm trường Token vào DTO kết quả
     }
 
     public class ServiceResponse<T>
@@ -40,11 +41,14 @@ namespace Nhom16_MVC.Services
     {
         private readonly AppDbContext _context;
         private readonly EmailHelper _emailHelper;
+        private readonly JwtHelper _jwtHelper; // Khai báo thêm JwtHelper
 
-        public AuthService(AppDbContext context, EmailHelper emailHelper)
+        // Tiêm JwtHelper vào qua Constructor
+        public AuthService(AppDbContext context, EmailHelper emailHelper, JwtHelper jwtHelper)
         {
             _context = context;
             _emailHelper = emailHelper;
+            _jwtHelper = jwtHelper;
         }
 
         public async Task<ServiceResponse<int>> RegisterAsync(AuthDTOs model)
@@ -73,7 +77,6 @@ namespace Nhom16_MVC.Services
 
                 string otp = new Random().Next(100000, 999999).ToString();
 
-                // FIX LỖI POSTGRESQL: Chuyển múi giờ về Unspecified để tương thích với 'timestamp without time zone'
                 DateTime nowLocal = DateTime.Now;
                 DateTime expiryTime = nowLocal.AddMinutes(15);
 
@@ -111,7 +114,7 @@ namespace Nhom16_MVC.Services
                     return response;
                 }
 
-                response.Message = "Đăng ký thành công! OTP xác thực đã được gửi đến email của bạn.";
+                response.Message = "Đăng ký thành công! OTP xác thực đã được gửi đến email of bạn.";
             }
             catch (DbUpdateException dbEx)
             {
@@ -155,7 +158,6 @@ namespace Nhom16_MVC.Services
                     return response;
                 }
 
-                // FIX SO SÁNH THỜI GIAN: Đồng bộ so sánh theo DateTime.Now (không kèm múi giờ)
                 if (user.tokenexpiry == null || user.tokenexpiry < DateTime.Now)
                 {
                     response.Success = false;
@@ -202,8 +204,6 @@ namespace Nhom16_MVC.Services
 
                 string otp = new Random().Next(100000, 999999).ToString();
                 user.verificationtoken = otp;
-
-                // FIX LỖI POSTGRESQL
                 user.tokenexpiry = DateTime.SpecifyKind(DateTime.Now.AddMinutes(15), DateTimeKind.Unspecified);
 
                 await _context.SaveChangesAsync();
@@ -257,12 +257,16 @@ namespace Nhom16_MVC.Services
                     return response;
                 }
 
+                // 🌟 TẠO TOKEN JWT: Gọi hàm sinh token thông qua đối tượng user
+                string generatedToken = _jwtHelper.GenerateToken(user);
+
                 response.Data = new LoginResultDto
                 {
                     UserId = user.manguoidung,
                     Email = user.email,
                     HoTen = user.hoten,
-                    VaiTro = user.vaitro.ToString()
+                    VaiTro = user.vaitro.ToString(),
+                    Token = generatedToken // Trả kèm token về
                 };
                 response.Message = "Đăng nhập thành công!";
             }
@@ -290,8 +294,6 @@ namespace Nhom16_MVC.Services
 
                 string otp = new Random().Next(100000, 999999).ToString();
                 user.verificationtoken = otp;
-
-                // FIX LỖI POSTGRESQL: Đồng bộ dùng DateTimeKind.Unspecified
                 user.tokenexpiry = DateTime.SpecifyKind(DateTime.Now.AddMinutes(15), DateTimeKind.Unspecified);
 
                 await _context.SaveChangesAsync();
@@ -349,7 +351,6 @@ namespace Nhom16_MVC.Services
                     return response;
                 }
 
-                // FIX SO SÁNH THỜI GIAN
                 if (user.tokenexpiry == null || user.tokenexpiry < DateTime.Now)
                 {
                     response.Success = false;

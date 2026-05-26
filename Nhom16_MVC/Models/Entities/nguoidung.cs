@@ -25,14 +25,11 @@ public partial class nguoidung
     public DateTime? createdat { get; set; }
 
     public bool? isemailverified { get; set; }
-
-    // Sử dụng trường này làm OTP khôi phục/xác thực mật khẩu (Khớp với DB)
     public string? verificationtoken { get; set; }
 
-    // Sử dụng trường này làm thời hạn của OTP (Khớp với DB)
     public DateTime? tokenexpiry { get; set; }
 
-    // Đã xóa bỏ hoàn toàn resetToken và resetTokenExpiry để tránh lỗi DbUpdateException
+    public string trangthai { get; set; } = "hoat_dong";
 
     public virtual ICollection<chat> chatnguoiguiNavigation { get; set; } = new List<chat>();
 
