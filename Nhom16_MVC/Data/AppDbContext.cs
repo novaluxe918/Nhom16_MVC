@@ -45,11 +45,7 @@ public partial class AppDbContext : DbContext
 
     public virtual DbSet<yeucauruttien> yeucauruttien { get; set; }
 
-<<<<<<< HEAD
-    protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
-        => optionsBuilder.UseNpgsql("Host=ep-round-meadow-aozuay67-pooler.c-2.ap-southeast-1.aws.neon.tech;Port=5432;Database=neondb;Username=neondb_owner;Password=npg_LZkF4o6huAwt;SSL Mode=Require");
-=======
->>>>>>> origin/feature/NTS_ThietLapCoBan
+
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -122,15 +118,17 @@ public partial class AppDbContext : DbContext
 
             entity.HasIndex(e => e.nguoithue, "ix_danhgia_nguoithue");
 
-            entity.HasIndex(e => e.masanbong, "ix_danhgia_sanbong");
+            entity.HasIndex(e => e.masanchitiet, "ix_danhgia_sanchitiet");
 
             entity.Property(e => e.thoigiandanhgia)
                 .HasDefaultValueSql("now()")
                 .HasColumnType("timestamp without time zone");
 
-            entity.HasOne(d => d.masanbongNavigation).WithMany(p => p.danhgia)
-                .HasForeignKey(d => d.masanbong)
-                .HasConstraintName("danhgia_masanbong_fkey");
+            entity.HasOne(d => d.masanchitietNavigation)
+                .WithMany(p => p.danhgia)
+                .HasForeignKey(d => d.masanchitiet)
+                .OnDelete(DeleteBehavior.Cascade) // Nếu sân con bị xóa, tự động xóa sạch đánh giá của sân đó
+                .HasConstraintName("danhgia_masanchitiet_fkey");
 
             entity.HasOne(d => d.nguoithueNavigation).WithMany(p => p.danhgia)
                 .HasForeignKey(d => d.nguoithue)
@@ -292,6 +290,16 @@ public partial class AppDbContext : DbContext
             entity.Property(e => e.updatedat)
                 .HasColumnName("updatedat")
                 .HasColumnType("timestamp without time zone");
+
+            entity.Property(e => e.giomocua)
+                .HasColumnName("giomocua")
+                .HasColumnType("time without time zone")
+                .HasDefaultValueSql("'06:00'");
+
+            entity.Property(e => e.giodongcua)
+                .HasColumnName("giodongcua")
+                .HasColumnType("time without time zone")
+                .HasDefaultValueSql("'22:00'");
         });
 
         modelBuilder.Entity<sanbongchitiet>(entity =>

@@ -20,8 +20,7 @@ public class AvailableFieldService
 
     /// Tìm kiếm sân trống theo khung giờ
  
-    public async Task<SearchAvailableFieldsResponse> SearchAvailableFieldsAsync(
-        SearchAvailableFieldsRequest request)
+    public async Task<SearchAvailableFieldsResponse> SearchAvailableFieldsAsync(SearchAvailableFieldsRequest request)
     {
         var response = new SearchAvailableFieldsResponse();
 
@@ -51,12 +50,41 @@ public class AvailableFieldService
             }
 
             // Lấy tất cả sân bóng với thông tin đánh giá
-            var sanbongs = await _context.sanbong
+
+            //  TẠO KHUNG LEGO CƠ BẢN: Lấy các sân đã duyệt
+            var query = _context.sanbong
                 .Include(s => s.sanbongchitiet)
                     .ThenInclude(sc => sc.maloaisanNavigation)
-                .Include(s => s.danhgia)
+                .Include(s => s.sanbongchitiet)
+                    .ThenInclude(sc => sc.danhgia)
                 .Where(s => s.daduyet == true)
-                .ToListAsync();
+                .AsQueryable(); 
+
+            // LẮP RÁP CÁC ĐIỀU KIỆN LỌC 
+
+            // - Nếu người dùng có chọn lọc theo Tên Sân 
+            if (!string.IsNullOrWhiteSpace(request.TenSan))
+            {
+                var keyword = request.TenSan.Trim().ToLower();
+                query = query.Where(s => s.tensan.ToLower().Contains(keyword));
+            }
+
+            // - Nếu người dùng có chọn Quận từ Combobox
+            if (!string.IsNullOrWhiteSpace(request.Quan))
+            {
+                query = query.Where(s => s.quan == request.Quan);
+            }
+
+            // - Nếu người dùng có chọn Loại Sân
+            if (request.MaLoaiSan.HasValue && request.MaLoaiSan.Value > 0)
+            {
+                
+                query = query.Where(s => s.sanbongchitiet.Any(sc => sc.maloaisan == request.MaLoaiSan.Value));
+            }
+
+            
+            var sanbongs = await query.ToListAsync();
+
 
             if (sanbongs.Count == 0)
             {
@@ -71,14 +99,18 @@ public class AvailableFieldService
  
             foreach (var sanbong in sanbongs)
             {
-                // Tính đánh giá trung bình của sân mẹ
-                var danhgias = sanbong.danhgia.ToList();
-                decimal soSaoDanhGia = danhgias.Count > 0
-                    ? Math.Round((decimal)danhgias.Average(d => (double)d.diemso),1)
-                    : 0;
-
                 foreach (var sanChiTiet in sanbong.sanbongchitiet)
                 {
+
+                    if (request.MaLoaiSan.HasValue && request.MaLoaiSan.Value > 0 && sanChiTiet.maloaisan != request.MaLoaiSan.Value)
+                    {
+                        continue;
+                    }
+                    var danhgias = sanChiTiet.danhgia.ToList();
+                    decimal soSaoDanhGia = danhgias.Count > 0
+                        ? Math.Round((decimal)danhgias.Average(d => (double)d.diemso), 1)
+                        : 0;
+
                     // Lấy tất cả booking của sân con trong ngày này
                     var batDauNgay = ngay.ToDateTime(TimeOnly.MinValue);   
                     var ketThucNgay = batDauNgay.AddDays(1);               

@@ -11,12 +11,14 @@ namespace Nhom16_MVC.Controllers
 
         private readonly SearchService _searchService;
         private readonly AvailableFieldService _availableFieldService;
+        private readonly SanBongService _sanBongService;
 
 
-        public SanBongController(SearchService searchService, AvailableFieldService availableFieldService)
+        public SanBongController(SearchService searchService, AvailableFieldService availableFieldService, SanBongService sanBongService)
         {
             _searchService = searchService;
             _availableFieldService = availableFieldService;
+            _sanBongService = sanBongService;
         }
 
         [HttpGet("goi-y")]
@@ -60,6 +62,35 @@ namespace Nhom16_MVC.Controllers
 
             var result = await _availableFieldService.SearchAvailableFieldsAsync(request);
             return Ok(result);
+        }
+
+
+        [HttpGet("danh-sach-loai-san")]
+        public async Task<IActionResult> GetLoaiSan()
+        {
+            var result = await _searchService.GetDanhSachLoaiSanAsync();
+            return Ok(new { Success = true, Data = result });
+        }
+
+        [HttpGet("danh-sach-quan")]
+        public async Task<IActionResult> GetQuan()
+        {
+            var result = await _searchService.GetDanhSachQuanAsync();
+            return Ok(new { Success = true, Data = result });
+        }
+
+        //api sân mẹ 
+        [HttpGet("chi-tiet-san-me/{id}")]
+        public async Task<IActionResult> GetChiTietSanMe(int id)
+        {
+            var result = await _sanBongService.GetChiTietSanMeAsync(id);
+
+            if (result == null)
+            {
+                return NotFound(new { Success = false, Message = "Không tìm thấy dữ liệu sân bóng hoặc sân chưa được phê duyệt." });
+            }
+
+            return Ok(new { Success = true, Data = result });
         }
     }
 }

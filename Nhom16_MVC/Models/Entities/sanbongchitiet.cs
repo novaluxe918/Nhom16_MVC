@@ -19,6 +19,8 @@ public partial class sanbongchitiet
 
     public virtual ICollection<chitietdatsan> chitietdatsan { get; set; } = new List<chitietdatsan>();
 
+    public virtual ICollection<danhgia> danhgia { get; set; } = new List<danhgia>();
+
     public virtual loaisan maloaisanNavigation { get; set; } = null!;
 
     public virtual sanbong masanbongNavigation { get; set; } = null!;

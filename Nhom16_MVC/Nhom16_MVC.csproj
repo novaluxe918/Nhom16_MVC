@@ -32,7 +32,6 @@
     <Folder Include="fe\src\pages\Auth\" />
     <Folder Include="fe\src\pages\Owner\" />
     <Folder Include="Helpers\" />
-    <Folder Include="Models\DTOs\" />
     <Folder Include="Models\Enums\" />
   </ItemGroup>
 

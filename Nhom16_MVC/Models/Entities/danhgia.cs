@@ -7,7 +7,7 @@ public partial class danhgia
 {
     public int madanhgia { get; set; }
 
-    public int masanbong { get; set; }
+    public int masanchitiet { get; set; }
 
     public int nguoithue { get; set; }
 
@@ -17,7 +17,7 @@ public partial class danhgia
 
     public DateTime? thoigiandanhgia { get; set; }
 
-    public virtual sanbong masanbongNavigation { get; set; } = null!;
+    public virtual sanbongchitiet masanchitietNavigation { get; set; } = null!;
 
     public virtual nguoidung nguoithueNavigation { get; set; } = null!;
 }
