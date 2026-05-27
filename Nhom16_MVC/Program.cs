@@ -33,6 +33,16 @@ builder.Services.AddScoped<ISanBongRepository, SanBongRepository>();
 builder.Services.AddScoped<ISanBongService, SanBongService>();
 builder.Services.AddScoped<IBangGiaRepository, BangGiaRepository>();
 builder.Services.AddScoped<IBangGiaService, BangGiaService>();
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowReact",
+        policy =>
+        {
+            policy.AllowAnyOrigin()
+                  .AllowAnyHeader()
+                  .AllowAnyMethod();
+        });
+});
 var app = builder.Build();
 
 // =========================
@@ -55,5 +65,5 @@ app.UseAuthorization();
 
 // API Controllers
 app.MapControllers();
-
+app.UseCors("AllowReact");
 app.Run();

@@ -17,6 +17,7 @@ namespace Nhom16_MVC.Services
         {
             var san = new sanbong
             {
+                chusan = dto.ChuSan,
                 tensan = dto.TenSan,
                 mota = dto.MoTa,
                 diachi = dto.DiaChi,

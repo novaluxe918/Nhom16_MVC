@@ -269,9 +269,9 @@ public partial class AppDbContext : DbContext
 
             entity.HasIndex(e => e.daduyet, "ix_sanbong_daduyet");
 
-            entity.Property(e => e.createdat)
-                .HasDefaultValueSql("now()")
-                .HasColumnType("timestamp without time zone");
+            modelBuilder.Entity<sanbong>()
+    .Property(x => x.createdat)
+    .HasColumnType("timestamp with time zone");
             entity.Property(e => e.daduyet).HasDefaultValue(false);
             entity.Property(e => e.huyen).HasMaxLength(100);
             entity.Property(e => e.kinhdo).HasPrecision(11, 8);
@@ -287,9 +287,9 @@ public partial class AppDbContext : DbContext
                 .HasForeignKey(d => d.chusan)
                 .OnDelete(DeleteBehavior.Restrict)
                 .HasConstraintName("sanbong_chusan_fkey");
-            entity.Property(e => e.updatedat)
-                .HasColumnName("updatedat")
-                .HasColumnType("timestamp without time zone");
+            modelBuilder.Entity<sanbong>()
+      .Property(x => x.updatedat)
+      .HasColumnType("timestamp with time zone");
         });
 
         modelBuilder.Entity<sanbongchitiet>(entity =>
