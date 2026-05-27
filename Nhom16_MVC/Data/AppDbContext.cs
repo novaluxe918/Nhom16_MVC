@@ -133,6 +133,9 @@ public partial class AppDbContext : DbContext
             entity.HasOne(d => d.nguoithueNavigation).WithMany(p => p.danhgia)
                 .HasForeignKey(d => d.nguoithue)
                 .HasConstraintName("danhgia_nguoithue_fkey");
+
+          
+
         });
 
         modelBuilder.Entity<datsan>(entity =>
@@ -357,7 +360,7 @@ public partial class AppDbContext : DbContext
             entity.HasOne(d => d.manguoidungNavigation).WithMany(p => p.yeucauruttien)
                 .HasForeignKey(d => d.manguoidung)
                 .HasConstraintName("yeucauruttien_manguoidung_fkey");
-            
+
         });
 
         OnModelCreatingPartial(modelBuilder);

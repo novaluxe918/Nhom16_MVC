@@ -5,6 +5,9 @@ using Nhom16_MVC.Services;
 using Nhom16_MVC.Repositories.Interfaces;
 using Nhom16_MVC.Services;
 using Nhom16_MVC.Services.Interfaces;
+using System.Text.Json.Serialization;
+
+
 
 var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddDbContext<AppDbContext>(options =>
@@ -17,6 +20,11 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 
 builder.Services.AddControllers();
 
+builder.Services.AddControllers()
+    .AddJsonOptions(x =>
+    {
+        x.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles;
+    });
 builder.Services.AddSingleton<DatabaseService>();
 
 builder.Services.AddScoped<SearchService>();

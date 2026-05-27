@@ -26,4 +26,5 @@ public partial class sanbongchitiet
     public virtual sanbong masanbongNavigation { get; set; } = null!;
 
     public virtual ICollection<media_sanbongchitiet> media_sanbongchitiet { get; set; } = new List<media_sanbongchitiet>();
+    
 }

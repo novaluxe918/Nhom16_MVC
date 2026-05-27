@@ -44,4 +44,5 @@ public partial class sanbong
     public virtual ICollection<media_sanbong> media_sanbong { get; set; } = new List<media_sanbong>();
 
     public virtual ICollection<sanbongchitiet> sanbongchitiet { get; set; } = new List<sanbongchitiet>();
+    public virtual ICollection<danhgia> danhgia { get; set; } = new List<danhgia>();
 }
