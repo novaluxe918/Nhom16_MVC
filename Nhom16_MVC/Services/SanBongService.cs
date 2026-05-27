@@ -1,4 +1,6 @@
-﻿using Nhom16_MVC.Data;
+
+using Microsoft.EntityFrameworkCore;
+using Nhom16_MVC.Data;
 using Nhom16_MVC.Models.DTOs;
 using Nhom16_MVC.Models.Entities;
 using Nhom16_MVC.Repositories;
@@ -7,8 +9,8 @@ namespace Nhom16_MVC.Services
 {
     public class SanBongService : ISanBongService
     {
-       private readonly ISanBongRepository _repository;
-
+        private readonly ISanBongRepository _repository;
+        private readonly AppDbContext _db;
         public SanBongService(ISanBongRepository repository)
         {
             _repository = repository;
@@ -97,7 +99,11 @@ namespace Nhom16_MVC.Services
             return true;
         }
 
-       public async Task<ChiTietSanMeDto> GetChiTietSanMeAsync(int maSanMenge)
+
+
+
+        public async Task<ChiTietSanMeDto> GetChiTietSanMeAsync(int maSanMenge)
+
         {
             var sanBong = await _db.sanbong
                 .Include(s => s.media_sanbong)
@@ -139,4 +145,4 @@ namespace Nhom16_MVC.Services
         }
     }
     }
-}
+

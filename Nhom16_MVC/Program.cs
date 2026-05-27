@@ -1,7 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Nhom16_MVC.Data;
 using Nhom16_MVC.Repositories;
-
 using Nhom16_MVC.Services;
 using Nhom16_MVC.Repositories.Interfaces;
 using Nhom16_MVC.Services;
@@ -22,6 +21,14 @@ builder.Services.AddSingleton<DatabaseService>();
 
 builder.Services.AddScoped<SearchService>();
 builder.Services.AddScoped<AvailableFieldService>();
+
+builder.Services.AddScoped<SanBongService>();
+builder.Services.AddScoped<SanBongChiTietService>();
+builder.Services.AddScoped<BookingService>();
+builder.Services.AddScoped<GiaoDichService>();
+builder.Services.AddScoped<DanhGiaService>();
+
+builder.Services.AddHttpContextAccessor();
 
 // Swagger
 builder.Services.AddEndpointsApiExplorer();
@@ -65,5 +72,13 @@ app.UseAuthorization();
 
 // API Controllers
 app.MapControllers();
+
 app.UseCors("AllowReact");
+
+if (app.Environment.IsDevelopment())
+{
+    app.UseSwagger();
+    app.UseSwaggerUI();
+}
+
 app.Run();
