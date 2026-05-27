@@ -37,5 +37,10 @@ namespace Nhom16_MVC.Services
                 return new List<string>();
             }
         }
+
+        internal async Task GetDanhSachLoaiSanAsync()
+        {
+            throw new NotImplementedException();
+        }
     }
 }

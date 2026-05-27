@@ -54,7 +54,7 @@ public class AvailableFieldService
             var sanbongs = await _context.sanbong
                 .Include(s => s.sanbongchitiet)
                     .ThenInclude(sc => sc.maloaisanNavigation)
-                .Include(s => s.danhgia)
+                .Include(s => s.)
                 .Where(s => s.daduyet == true)
                 .ToListAsync();
 

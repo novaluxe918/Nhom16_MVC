@@ -1,4 +1,4 @@
-﻿using System;
+﻿﻿using System;
 using System.Collections.Generic;
 using Microsoft.EntityFrameworkCore;
 using Nhom16_MVC.Models.Entities;
@@ -45,8 +45,6 @@ public partial class AppDbContext : DbContext
 
     public virtual DbSet<yeucauruttien> yeucauruttien { get; set; }
 
-    protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
-        => optionsBuilder.UseNpgsql("Host=ep-round-meadow-aozuay67-pooler.c-2.ap-southeast-1.aws.neon.tech;Port=5432;Database=neondb;Username=neondb_owner;Password=npg_LZkF4o6huAwt;SSL Mode=Require");
 
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -120,15 +118,17 @@ public partial class AppDbContext : DbContext
 
             entity.HasIndex(e => e.nguoithue, "ix_danhgia_nguoithue");
 
-            entity.HasIndex(e => e.masanbong, "ix_danhgia_sanbong");
+            entity.HasIndex(e => e.masanchitiet, "ix_danhgia_sanchitiet");
 
             entity.Property(e => e.thoigiandanhgia)
                 .HasDefaultValueSql("now()")
                 .HasColumnType("timestamp without time zone");
 
-            entity.HasOne(d => d.masanbongNavigation).WithMany(p => p.danhgia)
-                .HasForeignKey(d => d.masanbong)
-                .HasConstraintName("danhgia_masanbong_fkey");
+            entity.HasOne(d => d.masanchitietNavigation)
+                .WithMany(p => p.danhgia)
+                .HasForeignKey(d => d.masanchitiet)
+                .OnDelete(DeleteBehavior.Cascade) // Nếu sân con bị xóa, tự động xóa sạch đánh giá của sân đó
+                .HasConstraintName("danhgia_masanchitiet_fkey");
 
             entity.HasOne(d => d.nguoithueNavigation).WithMany(p => p.danhgia)
                 .HasForeignKey(d => d.nguoithue)
@@ -269,9 +269,9 @@ public partial class AppDbContext : DbContext
 
             entity.HasIndex(e => e.daduyet, "ix_sanbong_daduyet");
 
-            modelBuilder.Entity<sanbong>()
-    .Property(x => x.createdat)
-    .HasColumnType("timestamp with time zone");
+            entity.Property(e => e.createdat)
+                .HasDefaultValueSql("now()")
+                .HasColumnType("timestamp without time zone");
             entity.Property(e => e.daduyet).HasDefaultValue(false);
             entity.Property(e => e.huyen).HasMaxLength(100);
             entity.Property(e => e.kinhdo).HasPrecision(11, 8);
@@ -287,9 +287,19 @@ public partial class AppDbContext : DbContext
                 .HasForeignKey(d => d.chusan)
                 .OnDelete(DeleteBehavior.Restrict)
                 .HasConstraintName("sanbong_chusan_fkey");
-            modelBuilder.Entity<sanbong>()
-      .Property(x => x.updatedat)
-      .HasColumnType("timestamp with time zone");
+            entity.Property(e => e.updatedat)
+                .HasColumnName("updatedat")
+                .HasColumnType("timestamp without time zone");
+
+            entity.Property(e => e.giomocua)
+                .HasColumnName("giomocua")
+                .HasColumnType("time without time zone")
+                .HasDefaultValueSql("'06:00'");
+
+            entity.Property(e => e.giodongcua)
+                .HasColumnName("giodongcua")
+                .HasColumnType("time without time zone")
+                .HasDefaultValueSql("'22:00'");
         });
 
         modelBuilder.Entity<sanbongchitiet>(entity =>
