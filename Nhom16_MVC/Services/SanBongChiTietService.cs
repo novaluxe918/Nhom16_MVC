@@ -66,8 +66,8 @@ namespace Nhom16_MVC.Services
                 .ToListAsync();
 
             var result = new LichTrongTheoNgayDto
-            {
-                Ngay = ngayChon.ToString("dd/MM/yyyy"), // Trả về định dạng y như giao diện của bạn
+            {//
+                Ngay = ngayChon.ToString("dd/MM/yyyy"), 
                 Slots = new List<SlotGioTrangThaiDto>()
             };
 
