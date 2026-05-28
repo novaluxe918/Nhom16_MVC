@@ -1,14 +1,16 @@
-namespace Nhom16_MVC.Models.Enums;
+using NpgsqlTypes; 
 
-
-public enum VaiTroEnum
+namespace Nhom16_MVC.Models.Enums
 {
-    [System.Runtime.Serialization.EnumMember(Value = "nguoiThue")]
-    NguoiThue = 0,
+    public enum VaiTroEnum
+    {
+        [PgName("nguoiThue")]  
+        NguoiThue = 0,
 
-    [System.Runtime.Serialization.EnumMember(Value = "chuSan")]
-    ChuSan = 1,
+        [PgName("chuSan")]    
+        ChuSan = 1,
 
-    [System.Runtime.Serialization.EnumMember(Value = "admin")]
-    Admin = 2
+        [PgName("admin")]    
+        Admin = 2
+    }
 }

@@ -49,6 +49,16 @@ public partial class AppDbContext : DbContext
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
+
+        base.OnModelCreating(modelBuilder);
+
+      
+        modelBuilder.HasPostgresEnum<TrangThaiDatEnum>("trang_thai_dat");
+        modelBuilder.HasPostgresEnum<VaiTroEnum>("vai_tro_enum");
+
+
+
+
         modelBuilder.Entity<chat>(entity =>
         {
             entity.HasKey(e => e.matinnhan).HasName("chat_pkey");
@@ -77,6 +87,7 @@ public partial class AppDbContext : DbContext
 
         modelBuilder.Entity<chitietdatsan>(entity =>
         {
+
             entity.Property(e => e.giobatdau)
                 .HasColumnType("timestamp without time zone");
             entity.Property(e => e.gioketthuc)
@@ -93,8 +104,16 @@ public partial class AppDbContext : DbContext
 
             entity.Property(e => e.trangthaidatsan)
                 .HasConversion(
-                    v => v.ToString().Replace("_", ""),
-                    v => Enum.Parse<TrangThaiDatEnum>(v))
+                    
+                    v => v == TrangThaiDatEnum.ChoXacNhan ? "cho_xac_nhan" :
+                         v == TrangThaiDatEnum.DaXacNhan ? "da_xac_nhan" :
+                         v == TrangThaiDatEnum.DaHuy ? "da_huy" : "hoan_thanh",
+
+                    
+                    v => v == "cho_xac_nhan" ? TrangThaiDatEnum.ChoXacNhan :
+                         v == "da_xac_nhan" ? TrangThaiDatEnum.DaXacNhan :
+                         v == "da_huy" ? TrangThaiDatEnum.DaHuy : TrangThaiDatEnum.HoanThanh
+                )
                 .HasDefaultValue(TrangThaiDatEnum.ChoXacNhan);
 
             entity.HasOne(d => d.madatsanNavigation).WithMany(p => p.chitietdatsan)
@@ -232,11 +251,26 @@ public partial class AppDbContext : DbContext
 
         modelBuilder.Entity<nguoidung>(entity =>
         {
+            entity.Property(e => e.resetTokenExpiry).HasColumnName("resettokenexpiry");
+            entity.Property(e => e.resetToken).HasColumnName("resettoken");
             entity.HasKey(e => e.manguoidung).HasName("nguoidung_pkey");
 
             entity.HasIndex(e => e.email, "ix_nguoidung_email");
 
             entity.HasIndex(e => e.vaitro, "ix_nguoidung_vaitro");
+            //Thay đổi vai trò
+            entity.Property(e => e.vaitro)
+                .HasConversion(
+                    
+                    v => v == VaiTroEnum.NguoiThue ? "nguoiThue" :
+                         v == VaiTroEnum.ChuSan ? "chuSan" : "admin",
+
+                   
+                    v => v == "nguoiThue" ? VaiTroEnum.NguoiThue :
+                         v == "chuSan" ? VaiTroEnum.ChuSan : VaiTroEnum.Admin
+                )
+
+                .Metadata.SetAfterSaveBehavior(Microsoft.EntityFrameworkCore.Metadata.PropertySaveBehavior.Ignore);
 
             entity.HasIndex(e => e.email, "nguoidung_email_key").IsUnique();
 
@@ -252,13 +286,7 @@ public partial class AppDbContext : DbContext
             entity.Property(e => e.sodutaikhoan).HasDefaultValue(0L);
             entity.Property(e => e.tokenexpiry).HasColumnType("timestamp without time zone");
 
-            entity.Property(e => e.vaitro)
-                .HasConversion(
-                    v => v.ToString().Replace("_", "").ToLower(),
-                    v => Enum.Parse<VaiTroEnum>(v, true))
-                .HasDefaultValue(VaiTroEnum.NguoiThue);
-            entity.Property(e => e.resetTokenExpiry).HasColumnType("timestamp without time zone");
-            entity.Property(e => e.resetToken).HasMaxLength(255);
+           
         });
 
         modelBuilder.Entity<sanbong>(entity =>

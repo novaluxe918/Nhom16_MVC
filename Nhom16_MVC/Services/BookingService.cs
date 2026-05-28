@@ -22,6 +22,8 @@ namespace Nhom16_MVC.Services
 
             //Xác thực thông tin thực thể người dùng và sân con có tồn tại không
             var nguoiDung = await _context.nguoidung.FirstOrDefaultAsync(u => u.manguoidung == manguoiThue);
+
+
             var sanCon = await _context.sanbongchitiet.FirstOrDefaultAsync(sc => sc.masanchitiet == maSanChiTiet);
 
             if (nguoiDung == null) { response.Message = "Tài khoản người dùng không hợp lệ."; return response; }
@@ -154,13 +156,20 @@ namespace Nhom16_MVC.Services
             try
             {
                 //chuyển đổi sang trạng thái đã hủy 
-                chiTiet.trangthaidatsan = TrangThaiDatEnum.DaHuy;
-                _context.chitietdatsan.Update(chiTiet);
+                //chiTiet.trangthaidatsan = TrangThaiDatEnum.DaHuy;
+                //_context.chitietdatsan.Update(chiTiet);
+
+
+                await _context.Database.ExecuteSqlRawAsync(
+                    "UPDATE chitietdatsan SET trangthaidatsan = 'da_huy'::trang_thai_dat WHERE machitietdatsan = {0}",
+                    maChiTietDatSan);
 
                 //hoàn tiền 
+                /////////////////////////////////////////////
                 var nguoiDung = await _context.nguoidung.FirstOrDefaultAsync(u => u.manguoidung == maNguoiDung);
+
                 nguoiDung.sodutaikhoan += soTienHoan;
-                _context.nguoidung.Update(nguoiDung);
+                //_context.nguoidung.Update(nguoiDung);
 
                 await _context.SaveChangesAsync();
                 await dbTransaction.CommitAsync();
@@ -171,9 +180,54 @@ namespace Nhom16_MVC.Services
             }catch(Exception ex)
             {
                 await dbTransaction.RollbackAsync();
-                response.Message = $"Lỗi hệ thống khi hủy sân: {ex.Message}";
+
+                
+                Exception rootCause = ex;
+                while (rootCause.InnerException != null)
+                {
+                    rootCause = rootCause.InnerException;
+                }
+
+                response.Message = $"Lỗi DB: {rootCause.Message}";
                 return response;
             }
+        }
+
+        //Lấy lịch sử đặt sân
+        public async Task<List<LichSuDatSanDto>> GetLichSuDatSanAsync(int userId)
+        {
+            var lichSu = await _context.datsan
+                .Where(ds => ds.nguoithue == userId)
+                .Select(ds => new LichSuDatSanDto
+                {
+                    MaDatSan = ds.madatsan,
+                    NgayDat = ds.ngaydat.ToString("dd/MM/yyyy"),
+                    SoTienThanhToan = ds.sotienthanhtoan,
+
+                    // Lấy giờ từ chi tiết đặt sân
+                    GioBatDau = ds.chitietdatsan.FirstOrDefault().giobatdau.ToString("HH:mm"),
+                    GioKetThuc = ds.chitietdatsan.FirstOrDefault().gioketthuc.ToString("HH:mm"),
+
+                    
+                    TrangThai = ds.chitietdatsan.FirstOrDefault().trangthaidatsan.ToString(),
+
+                    
+                    TenSanChiTiet = ds.chitietdatsan.FirstOrDefault().masanchitietNavigation.tensanchitiet,
+
+                    
+                    HinhAnhSan = ds.chitietdatsan.FirstOrDefault()
+                                    .masanchitietNavigation
+                                    .media_sanbongchitiet.FirstOrDefault().mediaid ?? "/placeholder.jpg",
+
+                    
+                    DiaChi = ds.chitietdatsan.FirstOrDefault()
+                                .masanchitietNavigation
+                                .masanbongNavigation.thanhpho ?? "Đà Nẵng"
+                })
+                .OrderByDescending(x => x.MaDatSan)
+                .ToListAsync();
+
+            return lichSu;
         }
 
     }

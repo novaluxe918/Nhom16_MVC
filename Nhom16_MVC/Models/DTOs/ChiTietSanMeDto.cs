@@ -11,6 +11,7 @@
         public decimal? KinhDo {  get; set; }
         public decimal? ViDo { get; set; }
         public string? GioHoatDong { get; set; }
+        public int SoLuongSanCon { get; set; }
 
         public List<string> AlbumMedia { get; set; } = new();
         public List<SanConTrongSanMeDto> DanhSachSanCon { get; set;} = new();
