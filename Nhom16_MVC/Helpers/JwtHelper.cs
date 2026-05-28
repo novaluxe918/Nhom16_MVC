@@ -1,4 +1,5 @@
-﻿using System.IdentityModel.Tokens.Jwt;
+﻿using System;
+using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
 using Microsoft.Extensions.Configuration;
@@ -16,7 +17,26 @@ namespace Nhom16_MVC.Helpers
             _configuration = configuration;
         }
 
+        /// <summary>
+        /// Tạo Token với 1 tham số là đối tượng nguoidung (Lấy vai trò trực tiếp từ object)
+        /// </summary>
         public string GenerateToken(nguoidung user)
+        {
+            return GenerateTokenInternal(user, user.vaitro.ToString());
+        }
+
+        /// <summary>
+        /// Overload: Tạo Token với 2 tham số (Sửa lỗi: No overload for method 'GenerateToken' takes 2 arguments)
+        /// </summary>
+        public string GenerateToken(nguoidung user, string customRole)
+        {
+            return GenerateTokenInternal(user, customRole);
+        }
+
+        /// <summary>
+        /// Hàm xử lý logic tạo Token nội bộ
+        /// </summary>
+        private string GenerateTokenInternal(nguoidung user, string role)
         {
             var secretKey = _configuration["JwtSettings:SecretKey"];
             var issuer = _configuration["JwtSettings:Issuer"];
@@ -30,7 +50,7 @@ namespace Nhom16_MVC.Helpers
             {
                 new Claim(ClaimTypes.NameIdentifier, user.manguoidung.ToString()),
                 new Claim(ClaimTypes.Email, user.email),
-                new Claim(ClaimTypes.Role, user.vaitro.ToString()),
+                new Claim(ClaimTypes.Role, role),
                 new Claim("HoTen", user.hoten ?? "")
             };
 
