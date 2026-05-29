@@ -97,7 +97,7 @@ namespace Nhom16_MVC.Controllers
         public async Task<IActionResult> HuyLichDat(int maChiTiet)
         {
             var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            ////kiểm tra thẻ id
+            
             if (string.IsNullOrEmpty(userIdClaim))
             {
                 return Unauthorized(new { Success = false, Message = "Bạn chưa đăng nhập hoặc phiên làm việc đã hết hạn." });
@@ -105,8 +105,6 @@ namespace Nhom16_MVC.Controllers
 
             int maNguoiDungDangNhap = int.Parse(userIdClaim);
 
-
-            
 
 
             var result = await _bookingService.HuyDatSanVaHoanTienAsync(maNguoiDungDangNhap, maChiTiet);

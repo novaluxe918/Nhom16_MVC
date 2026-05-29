@@ -1,9 +1,11 @@
 import  { useState } from 'react';
 import axios from 'axios';
 import { Star, Camera, X } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';//////////////////////////
 
 const DanhGiaSanPage = () => {
+    ///////////////////////////////////////
+    const { id } = useParams();
     const navigate = useNavigate();
 
     // State quản lý form
@@ -46,32 +48,38 @@ const DanhGiaSanPage = () => {
 
         setIsSubmitting(true);
         try {
-            // Sử dụng FormData để đẩy file vật lý lên Server C#
-            const formData = new FormData();
-            formData.append("DiemSo", rating);
-            formData.append("BinhLuan", comment);
-            // Giả lập truyền mã chi tiết đặt sân (cần lấy từ params trên URL thực tế)
-            formData.append("MaChiTietDatSan", 1);
-
-            selectedImages.forEach(image => {
-                formData.append("HinhAnh", image); // Tên field "HinhAnh" phải khớp với IFormFile bên C#
-            });
-
             const token = localStorage.getItem('token');
-            const response = await axios.post('https://localhost:7295/api/DanhGia/gui-danh-gia', formData, {
+
+            // 1. TẠO OBJECT JSON THUẦN TÚY (Tuyệt đối không dùng new FormData() ở đây)
+            const requestData = {
+                MaSanChiTiet: Number(id), // id được lấy từ useParams() trên URL
+                DiemSo: rating,
+                BinhLuan: comment
+            };
+
+            // 2. KHAI BÁO HEADER CONTENT-TYPE CHUẨN CHO JSON
+            const response = await axios.post('https://localhost:7295/api/DanhGia/gui-danh-gia', requestData, {
                 headers: {
-                    Authorization: `Bearer ${token}`,
-                    'Content-Type': 'multipart/form-data'
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json' // 👉 Dòng khóa chốt để diệt lỗi 415
                 }
             });
 
-            if (response.data.success) {
-                alert("Cảm ơn bạn đã đánh giá!");
-                navigate('/lich-su-dat-san'); // Quay về trang lịch sử
+            if (response.data.success || response.data.Success) {
+                alert("🎉 Cảm ơn bạn đã gửi đánh giá thành công!");
+                navigate('/lich-su-dat-san');
+            } else {
+                alert(`Lỗi: ${response.data.message || response.data.Message}`);
             }
         } catch (error) {
             console.error("Lỗi gửi đánh giá:", error);
-            alert("Có lỗi xảy ra khi gửi đánh giá.");
+
+            // Ép xuất hiện popup chứa 100% nội dung lỗi từ Backend C#
+            if (error.response && error.response.data) {
+                alert("LỖI TỪ C#: " + JSON.stringify(error.response.data));
+            } else {
+                alert("LỖI KHÔNG XÁC ĐỊNH: " + error.message);
+            }
         } finally {
             setIsSubmitting(false);
         }

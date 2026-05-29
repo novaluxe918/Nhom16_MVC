@@ -165,7 +165,7 @@ namespace Nhom16_MVC.Services
                     maChiTietDatSan);
 
                 //hoàn tiền 
-                /////////////////////////////////////////////
+                
                 var nguoiDung = await _context.nguoidung.FirstOrDefaultAsync(u => u.manguoidung == maNguoiDung);
 
                 nguoiDung.sodutaikhoan += soTienHoan;
@@ -203,6 +203,7 @@ namespace Nhom16_MVC.Services
                     MaDatSan = ds.madatsan,
                     NgayDat = ds.ngaydat.ToString("dd/MM/yyyy"),
                     SoTienThanhToan = ds.sotienthanhtoan,
+                    MaSanChiTiet = ds.chitietdatsan.FirstOrDefault().masanchitiet,
 
                     // Lấy giờ từ chi tiết đặt sân
                     GioBatDau = ds.chitietdatsan.FirstOrDefault().giobatdau.ToString("HH:mm"),

@@ -3,6 +3,8 @@ import HomePage from './NTS/pages/HomePage';
 import CumSanPage from './NTS/pages/CumSanPage';
 import ChiTietSanPage from './NTS/pages/ChiTietSanPage';
 import LichSuDatSanPage from './NTS/pages/LichSuDatSanPage';
+import DanhGiaSanPage from './NTS/pages/DanhGiaSanPage';
+import ViDienTuPage from './NTS/pages/ViDienTuPage';
 
 function App() {
     return (
@@ -18,6 +20,8 @@ function App() {
                 <Route path="/cum-san/:id" element={<CumSanPage />} />
                 <Route path="/san-con/:id" element={<ChiTietSanPage />} />
                 <Route path="/lich-su-dat-san" element={<LichSuDatSanPage />} />
+                <Route path="/danh-gia/:id" element={<DanhGiaSanPage />} />
+                <Route path="/wallet" element={<ViDienTuPage />} />
 
 
                 {/* Ví dụ các trang bạn sẽ làm tiếp theo */}

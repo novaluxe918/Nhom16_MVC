@@ -18,7 +18,8 @@ namespace Nhom16_MVC.Controllers
         [HttpGet("lich-su/{userId}")]
         public async Task<IActionResult> GetLichSuCuaToi(int userId)
         {
-            // Nhờ Service đi lấy dữ liệu
+            
+
             var result = await _bookingService.GetLichSuDatSanAsync(userId);
 
             // Trả kết quả về cho React

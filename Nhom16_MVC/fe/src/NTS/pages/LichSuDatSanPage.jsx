@@ -18,8 +18,7 @@ const LichSuDatSanPage = () => {
     // 1. Quản lý State
     const [danhSachDon, setDanhSachDon] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
-    const [activeTab, setActiveTab] = useState('tat_ca'); // tat_ca, sap_toi, hoan_thanh, da_huy
-
+    const [activeTab, setActiveTab] = useState('tat_ca'); 
     // 2. GỌI API LẤY LỊCH SỬ ĐẶT SÂN TỪ BACKEND
     useEffect(() => {
         const fetchLichSu = async () => {
@@ -31,7 +30,7 @@ const LichSuDatSanPage = () => {
             }
 
             try {
-                // TẠM GÁN CỨNG CHO ID 2////////////////////////////////////////////////////////
+                
                 const response = await axios.get('https://localhost:7295/api/DatSan/lich-su', {
                     headers: { Authorization: `Bearer ${token}` }
                 });
@@ -55,6 +54,7 @@ const LichSuDatSanPage = () => {
 
                         return {
                             id: don.maDatSan,
+                            maSanChiTiet: don.maSanChiTiet || don.MaSanChiTiet,
                             trangThai: mappedTrangThai,
                             rawNgayDat: don.ngayDat,     // Giữ lại dữ liệu thô để dùng cho chức năng hủy
                             rawGioBatDau: don.gioBatDau, // Giữ lại dữ liệu thô
@@ -250,7 +250,7 @@ const LichSuDatSanPage = () => {
                                         <span className="text-xs italic text-error font-medium">Hoàn tiền {don.hoanTien}</span>
                                     ) : (
                                         <Link
-                                            to={`/danh-gia/${don.id}`}
+                                            to={`/danh-gia/${don.maSanChiTiet}`}
                                             className="px-4 py-2 rounded-full bg-primary text-white font-bold hover:bg-primary-dim transition-all shadow-md active:scale-95 text-xs flex items-center gap-1"
                                         >
                                             <span className="material-symbols-outlined text-[14px]">rate_review</span>

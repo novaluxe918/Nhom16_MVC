@@ -16,13 +16,12 @@ namespace Nhom16_MVC.Controllers
         [HttpPost("rut-tien")]
         public async Task<IActionResult> RutTien([FromBody] RutTienRequestDto reqest)
         {
+          
+            
             var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            //kiểm tra thẻ id
-            if (string.IsNullOrEmpty(userIdClaim))
-            {
-                return Unauthorized(new { Success = false, Message = "Bạn chưa đăng nhập hoặc phiên làm việc đã hết hạn." });
-            }
+            if (string.IsNullOrEmpty(userIdClaim)) return Unauthorized("yêu cầu đăng nhập trước");
 
+            
             int maNguoiDungDangNhap = int.Parse(userIdClaim);
 
             var result = await _giaoDichService.TaoYeuCauRutTienAsync(maNguoiDungDangNhap, reqest);
@@ -35,15 +34,18 @@ namespace Nhom16_MVC.Controllers
         [HttpPost("nap-tien")]
         public async Task<IActionResult> TaoUrlNapTien([FromBody] NapTienRequestDto request)
         {
-            
+
             var userIdClaim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
             if (string.IsNullOrEmpty(userIdClaim)) return Unauthorized(new { Success = false, Message = "Chưa đăng nhập." });
 
-            int maNguoiDungThat = int.Parse(userIdClaim);
+            int maNguoiDungDangNhap = int.Parse(userIdClaim);
+
+           
+
 
             if (request.SoTien < 10000) return BadRequest(new { Success = false, Message = "Số tiền nạp tối thiểu 10.000đ" });
 
-            string url = await _giaoDichService.TaoUrlNapTienVnPayAsync(maNguoiDungThat, request.SoTien);
+            string url = await _giaoDichService.TaoUrlNapTienVnPayAsync(maNguoiDungDangNhap, request.SoTien);
 
             return Ok(new { Success = true, Url = url });
         }
@@ -56,6 +58,21 @@ namespace Nhom16_MVC.Controllers
            
             // Tạm thời để test API:
             return Ok(new { Message = ketQua });
+        }
+
+        [HttpGet("lich-su-vi")]
+        public async Task<IActionResult> GetLichSuVi()
+        {
+            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(userIdClaim)) 
+                return Unauthorized(new { Success = false, Message = "Chưa đăng nhập." });
+            int maNguoiDungDangNhap = int.Parse(userIdClaim);
+
+            var data = await _giaoDichService.GetThongTinViAsync(maNguoiDungDangNhap);
+
+            if (data == null) return NotFound(new { Success = false, Message = "Không tìm thấy người dùng" });
+
+            return Ok(new { Success = true, Data = data });
         }
 
     }

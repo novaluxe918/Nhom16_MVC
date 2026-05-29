@@ -240,8 +240,14 @@ public partial class AppDbContext : DbContext
 
             entity.Property(e => e.trangthai)
                 .HasConversion(
-                    v => v.ToString().Replace("_", ""),
-                    v => Enum.Parse<TrangThaiNapEnum>(v))
+                    // Lệnh ghi xuống DB
+                    v => v == TrangThaiNapEnum.ChoXuLy ? "cho_xu_ly" :
+                         v == TrangThaiNapEnum.ThanhCong ? "thanh_cong" : "that_bai",
+
+                    // Lệnh đọc từ DB lên C#
+                    v => v == "cho_xu_ly" ? TrangThaiNapEnum.ChoXuLy :
+                         v == "thanh_cong" ? TrangThaiNapEnum.ThanhCong : TrangThaiNapEnum.ThatBai
+                )
                 .HasDefaultValue(TrangThaiNapEnum.ChoXuLy);
 
             entity.HasOne(d => d.nguoinapNavigation).WithMany(p => p.naptien)
@@ -378,8 +384,14 @@ public partial class AppDbContext : DbContext
 
             entity.Property(e => e.trangthai)
                 .HasConversion(
-                    v => v.ToString().Replace("_", ""),
-                    v => Enum.Parse<TrangThaiRutEnum>(v))
+                    // Lệnh ghi xuống DB
+                    v => v == TrangThaiRutEnum.ChoXuLy ? "cho_xu_ly" :
+                         v == TrangThaiRutEnum.DaChuyen ? "da_chuyen" : "that_bai",
+
+                    // Lệnh đọc từ DB lên C#
+                    v => v == "cho_xu_ly" ? TrangThaiRutEnum.ChoXuLy :
+                         v == "da_chuyen" ? TrangThaiRutEnum.DaChuyen : TrangThaiRutEnum.ThatBai
+                )
                 .HasDefaultValue(TrangThaiRutEnum.ChoXuLy);
 
             entity.HasOne(d => d.manguoidungNavigation).WithMany(p => p.yeucauruttien)
