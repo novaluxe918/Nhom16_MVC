@@ -49,6 +49,24 @@ namespace Nhom16_MVC.Services
                 trangthai = TrangThaiRutEnum.ChoXuLy // Nằm chờ Admin duyệt
             };
 
+            try
+            {
+                await _context.yeucauruttien.AddAsync(yeuCau);
+                await _context.SaveChangesAsync();
+
+                response.Success = true;
+                response.Message = "Tạo lệnh rút tiền thành công. Vui lòng chờ Admin phê duyệt.";
+                return response;
+            }
+            catch (Exception ex)
+            {
+                // Bắt chính xác câu chửi của Database và ném nhẹ nhàng về cho React
+                string loiChiTiet = ex.InnerException?.Message ?? ex.Message;
+                response.Success = false;
+                response.Message = $"Lỗi Database: {loiChiTiet}";
+                return response;
+            }
+
             await _context.yeucauruttien.AddAsync(yeuCau);
             await _context.SaveChangesAsync();
 
@@ -146,6 +164,92 @@ namespace Nhom16_MVC.Services
 
             return vnp_ResponseCode == "00" ? "Nạp tiền thành công!" : "Nạp tiền thất bại hoặc bị hủy.";
 
+        }
+
+        // Hàm Lấy Lịch Sử Giao Dịch Thật từ DB
+        public async Task<List<LichSuGiaoDichDto>> GetLichSuGiaoDichAsync(int maNguoiDung)
+        {
+            // 1. Kéo dữ liệu thô từ DB lên bộ nhớ (RAM) trước để tránh lỗi 500 EF Core
+            var dsNapRaw = await _context.naptien.Where(n => n.nguoinap == maNguoiDung).ToListAsync();
+
+            // Map sang DTO trên bộ nhớ C#
+            var dsNap = dsNapRaw.Select(n => new LichSuGiaoDichDto
+            {
+                NgayGiaoDich = n.thoigiannap.HasValue ? n.thoigiannap.Value.ToString("dd/MM/yyyy HH:mm") : "",
+                LoaiHoatDong = $"Nạp tiền ({n.phuongthuc})",
+                SoTien = n.sotien,
+                TrangThai = n.trangthai.ToString().ToUpper(), // Bây giờ ToString() chạy an toàn
+                IsPositive = true,
+                ThoiGianThuc = n.thoigiannap
+            }).ToList();
+
+            // 2. Tương tự với Rút Tiền
+            var dsRutRaw = await _context.yeucauruttien.Where(r => r.manguoidung == maNguoiDung).ToListAsync();
+
+            var dsRut = dsRutRaw.Select(r => new LichSuGiaoDichDto
+            {
+                NgayGiaoDich = r.thoigianrut.HasValue ? r.thoigianrut.Value.ToString("dd/MM/yyyy HH:mm") : "",
+                LoaiHoatDong = $"Rút tiền về {r.tennganhang}",
+                SoTien = r.sotien,
+                TrangThai = r.trangthai.ToString().ToUpper(),
+                IsPositive = false,
+                ThoiGianThuc = r.thoigianrut
+            }).ToList();
+
+            // 3. Gộp và sắp xếp
+            var lichSuGop = dsNap.Concat(dsRut)
+                                 .OrderByDescending(x => x.ThoiGianThuc)
+                                 .ToList();
+
+            return lichSuGop;
+        }
+
+        public async Task<ThongTinViDto?> GetThongTinViAsync(int maNguoiDung)
+        {
+            var user = await _context.nguoidung.FirstOrDefaultAsync(u => u.manguoidung == maNguoiDung);
+            if (user == null) return null;
+
+            var nganHangGanNhat = await _context.yeucauruttien
+                .Where(r => r.manguoidung == maNguoiDung)
+                .OrderByDescending(r => r.thoigianrut)
+                .FirstOrDefaultAsync();
+
+            // 1. KÉO DATA THÔ LÊN RAM TRƯỚC BẰNG ToListAsync() ĐỂ TRÁNH LỖI 500 EF CORE
+            var dsNapRaw = await _context.naptien.Where(n => n.nguoinap == maNguoiDung).ToListAsync();
+            // 2. SAU ĐÓ MỚI MAP VÀ DÙNG .ToString()
+            var dsNap = dsNapRaw.Select(n => new LichSuGiaoDichDto
+            {
+                NgayGiaoDich = n.thoigiannap.HasValue ? n.thoigiannap.Value.ToString("dd/MM/yyyy HH:mm") : "",
+                LoaiHoatDong = $"Nạp tiền ({n.phuongthuc})",
+                SoTien = n.sotien,
+                TrangThai = n.trangthai.ToString().ToUpper(),
+                IsPositive = true,
+                ThoiGianThuc = n.thoigiannap
+            }).ToList();
+
+            // LÀM TƯƠNG TỰ VỚI RÚT TIỀN
+            var dsRutRaw = await _context.yeucauruttien.Where(r => r.manguoidung == maNguoiDung).ToListAsync();
+            var dsRut = dsRutRaw.Select(r => new LichSuGiaoDichDto
+            {
+                NgayGiaoDich = r.thoigianrut.HasValue ? r.thoigianrut.Value.ToString("dd/MM/yyyy HH:mm") : "",
+                LoaiHoatDong = $"Rút tiền về {r.tennganhang}",
+                SoTien = r.sotien,
+                TrangThai = r.trangthai.ToString().ToUpper(),
+                IsPositive = false,
+                ThoiGianThuc = r.thoigianrut
+            }).ToList();
+
+            var lichSuGop = dsNap.Concat(dsRut).OrderByDescending(x => x.ThoiGianThuc).ToList();
+
+            return new ThongTinViDto
+            {
+                HoTen = user.hoten,
+                Avatar = string.IsNullOrEmpty(user.avatar) ? "https://ui-avatars.com/api/?name=" + user.hoten : user.avatar,
+                SoDu = user.sodutaikhoan,
+                TenNganHang = nganHangGanNhat?.tennganhang ?? "Chưa liên kết",
+                SoTaiKhoan = nganHangGanNhat?.sotaikhoan ?? "Chưa có số tài khoản",
+                LichSu = lichSuGop
+            };
         }
     }
 }

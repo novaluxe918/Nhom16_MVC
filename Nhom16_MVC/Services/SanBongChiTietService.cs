@@ -27,12 +27,13 @@ namespace Nhom16_MVC.Services
         public async Task<ChiTietSanConLichDto> GetThongTinSanConAsync(int maSanChiTiet)
         {
             var sanCon = await _context.sanbongchitiet
+                .Include(sc=>sc.masanbongNavigation)
                 .Include(sc=>sc.maloaisanNavigation)
                 .Include(sc=>sc.media_sanbongchitiet)
-                .Include(s=>s.danhgia)
+                .Include(sc=>sc.danhgia)
                 .FirstOrDefaultAsync(sc=>sc.masanchitiet == maSanChiTiet);
 
-            if (sanCon == null || sanCon.masanbongNavigation.daduyet != true) return null;
+            if (sanCon == null || sanCon.masanbongNavigation?.daduyet != true) return null;
 
             var danhGias = sanCon.danhgia.ToList();
             decimal diemTb = danhGias.Count > 0 ? Math.Round((decimal)danhGias.Average(d => (double)d.diemso), 1) : 0;
@@ -42,7 +43,7 @@ namespace Nhom16_MVC.Services
             {
                 MaSanChiTiet = sanCon.masanchitiet,
                 TenSanChiTiet = sanCon.tensanchitiet,
-                LoaiSan = sanCon.maloaisanNavigation?.tenloaisan,
+                LoaiSan = sanCon.maloaisanNavigation?.tenloaisan ?? "Chưa phân loại",
                 GiaBuoiSang = sanCon.giathuebuoisang,
                 GiaBuoiToi = sanCon.giathuebuoitoi,
                 MaSanBongMenge = sanCon.masanbong,
@@ -116,7 +117,8 @@ namespace Nhom16_MVC.Services
                 .Include(sc => sc.masanbongNavigation)
                 .FirstOrDefaultAsync(sc => sc.masanchitiet == maSanChiTiet);
 
-            if (sanCon == null) return null;
+            if (sanCon == null || sanCon.masanbongNavigation == null)
+                return null;
 
             var batDauNgay = ngayChon.ToDateTime(TimeOnly.MinValue);
             var ketThucNgay = batDauNgay.AddDays(1);

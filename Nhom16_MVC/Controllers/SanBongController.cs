@@ -115,5 +115,12 @@ namespace Nhom16_MVC.Controllers
 
             return Ok("Xóa thành công");
         }
+
+        [HttpGet("danh-sach-san-me")]
+        public async Task<IActionResult> GetDanhSachSanMe([FromQuery] string? tenSan)
+        {
+            var result = await _sanBongService.GetDanhSachSanMeAsync(tenSan);
+            return Ok(new { Success = true, Data = result });
+        }
     }
 }

@@ -6,6 +6,23 @@
 		<ImplicitUsings>enable</ImplicitUsings>
 	</PropertyGroup>
 
+  <ItemGroup>
+    <PackageReference Include="BCrypt.Net-Next" Version="4.2.0" />
+    <PackageReference Include="MailKit" Version="4.16.0" />
+    <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="8.0.11" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore" Version="8.0.0" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="8.0.0">
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Tools" Version="8.0.0">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+    <PackageReference Include="Npgsql" Version="8.0.4" />
+    <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="8.0.0" />
+    <PackageReference Include="Swashbuckle.AspNetCore" Version="10.1.7" />
+    <PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="8.18.0" />
 	<ItemGroup>
 		<PackageReference Include="BCrypt.Net-Next" Version="4.2.0" />
 		<PackageReference Include="MailKit" Version="4.16.0" />
@@ -32,5 +49,17 @@
 		<Folder Include="Helpers\" />
 		<Folder Include="Models\Enums\" />
 	</ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="Data\" />
+    <Folder Include="fe\src\NTS\components\" />
+    <Folder Include="fe\src\NTS\services\" />
+    <Folder Include="fe\src\NTS\pages\" />
+    <Folder Include="fe\src\pages\Admin\" />
+    <Folder Include="fe\src\pages\Auth\" />
+    <Folder Include="fe\src\pages\Owner\" />
+    <Folder Include="Helpers\" />
+    <Folder Include="Models\Enums\" />
+  </ItemGroup>
 
 </Project>

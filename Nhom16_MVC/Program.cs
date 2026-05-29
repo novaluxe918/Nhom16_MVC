@@ -10,6 +10,30 @@ using Npgsql.NameTranslation;
 using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
+builder.Services.AddDbContext<AppDbContext>(options =>
+    options.UseNpgsql(
+        builder.Configuration.GetConnectionString("DefaultConnection")));
+
+
+
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowReactApp", policy =>
+    {
+        policy.WithOrigins("http://localhost:5173", "http://localhost:5174") // Các port Frontend của bạn
+              .AllowAnyHeader()
+              .AllowAnyMethod()
+              .AllowCredentials();
+    });
+});
+
+
+
+// =========================
+// Add services
+// =========================
+
+builder.Services.AddControllers();
 
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
 var dataSourceBuilder = new NpgsqlDataSourceBuilder(connectionString);
@@ -87,8 +111,7 @@ app.UseHttpsRedirection();
 // 3. Định tuyến ứng dụng
 app.UseRouting();
 
-// 4. Bảo mật Authentication và Authorization
-app.UseAuthentication();
+app.UseCors("AllowReactApp");
 app.UseAuthorization();
 
 // 5. Ánh xạ các Endpoint Controller
