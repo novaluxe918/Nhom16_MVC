@@ -1,4 +1,4 @@
-﻿using System;
+﻿﻿using System;
 using System.Collections.Generic;
 
 namespace Nhom16_MVC.Models.Entities;
@@ -19,9 +19,12 @@ public partial class sanbongchitiet
 
     public virtual ICollection<chitietdatsan> chitietdatsan { get; set; } = new List<chitietdatsan>();
 
+    public virtual ICollection<danhgia> danhgia { get; set; } = new List<danhgia>();
+
     public virtual loaisan maloaisanNavigation { get; set; } = null!;
 
     public virtual sanbong masanbongNavigation { get; set; } = null!;
 
     public virtual ICollection<media_sanbongchitiet> media_sanbongchitiet { get; set; } = new List<media_sanbongchitiet>();
+    
 }
