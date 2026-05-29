@@ -1,14 +1,18 @@
-namespace Nhom16_MVC.Models.Enums;
+﻿using System.Runtime.Serialization;
+using System.Text.Json.Serialization;
 
-
-public enum VaiTroEnum
+namespace Nhom16_MVC.Models.Enums
 {
-    [System.Runtime.Serialization.EnumMember(Value = "nguoiThue")]
-    NguoiThue = 0,
+    [JsonConverter(typeof(JsonStringEnumConverter))]
+    public enum VaiTroEnum
+    {
+        [EnumMember(Value = "nguoiThue")]
+        nguoiThue = 0,
 
-    [System.Runtime.Serialization.EnumMember(Value = "chuSan")]
-    ChuSan = 1,
+        [EnumMember(Value = "chuSan")]
+        chuSan = 1,
 
-    [System.Runtime.Serialization.EnumMember(Value = "admin")]
-    Admin = 2
+        [EnumMember(Value = "admin")]
+        admin = 2
+    }
 }
