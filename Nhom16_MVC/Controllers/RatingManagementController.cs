@@ -20,16 +20,24 @@ namespace Nhom16_MVC.Controllers.API
 
         /// <summary>
         /// API lấy danh sách toàn bộ các đánh giá trên hệ thống để Admin kiểm duyệt
+        /// URL: https://localhost:7295/api/RatingManagement/all-ratings
         /// </summary>
         [HttpGet("all-ratings")]
         public async Task<IActionResult> GetAllRatings()
         {
             var result = await _ratingService.GetAllRatingsAsync();
-            return Ok(result);
+
+            // ĐÃ SỬA: Bọc lại Object chuẩn hóa đầu ra khớp 100% với cấu trúc FE mong muốn (result.success và result.data)
+            return Ok(new
+            {
+                success = true,
+                data = result
+            });
         }
 
         /// <summary>
         /// API gỡ bỏ đánh giá mang tính chất spam, ảo, xúc phạm
+        /// URL: https://localhost:7295/api/RatingManagement/delete-rating
         /// </summary>
         [HttpDelete("delete-rating")]
         public async Task<IActionResult> DeleteRating([FromBody] DeleteRatingRequest request)

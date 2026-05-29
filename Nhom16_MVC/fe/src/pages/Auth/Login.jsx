@@ -31,18 +31,45 @@ export default function Login() {
             const result = await response.json();
 
             if (response.ok && result.success) {
-                localStorage.setItem('token', result.data.token);
-                localStorage.setItem('userEmail', result.data.email);
-                localStorage.setItem('userHoTen', result.data.hoTen);
-                localStorage.setItem('userVaiTro', result.data.vaiTro);
+                // 🕵️‍♂️ Kiểm tra cấu trúc dữ liệu linh hoạt (Có bọc 'data' hoặc Không bọc 'data')
+                let token = "";
+                let userEmail = "";
+                let userHoTen = "";
+                let userVaiTro = "";
+
+                if (result.data) {
+                    // Nếu Backend bọc trong Object 'data'
+                    token = result.data.token;
+                    userEmail = result.data.email;
+                    userHoTen = result.data.hoTen;
+                    userVaiTro = result.data.vaiTro;
+                } else {
+                    // Nếu Backend trả trực tiếp ra ngoài root
+                    token = result.token;
+                    userEmail = result.email;
+                    userHoTen = result.hoTen;
+                    userVaiTro = result.vaiTro;
+                }
+
+                // Lưu dữ liệu vào localStorage
+                localStorage.setItem('token', token || "");
+                localStorage.setItem('userEmail', userEmail || "");
+                localStorage.setItem('userHoTen', userHoTen || "");
+                localStorage.setItem('userVaiTro', userVaiTro || "");
 
                 alert("Đăng nhập thành công!");
-                window.location.href = "/";
+
+                // 🔀 Điều hướng thông minh theo vai trò
+                if (userVaiTro === 'admin') {
+                    navigate('/admin/dashboard');
+                } else {
+                    navigate('/');
+                }
             } else {
                 alert(result.message || "Tài khoản hoặc mật khẩu không chính xác.");
             }
         } catch (error) {
-            console.error("Lỗi đăng nhập:", error);
+            console.error("Lỗi đăng nhập hệ thống:", error);
             alert("Không thể kết nối đến máy chủ.");
         } finally {
             setLoading(false);
