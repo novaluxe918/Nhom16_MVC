@@ -18,21 +18,18 @@ public partial class nguoidung
 
     public string matkhau { get; set; } = null!;
 
-    public VaiTroEnum vaitro { get; set; } = VaiTroEnum.NguoiThue;
+    public VaiTroEnum vaitro { get; set; }
 
     public long sodutaikhoan { get; set; }
 
     public DateTime? createdat { get; set; }
 
     public bool? isemailverified { get; set; }
-
     public string? verificationtoken { get; set; }
 
-    public string? resetToken { get; set; }
-
-    public DateTime? resetTokenExpiry { get; set; }
-
     public DateTime? tokenexpiry { get; set; }
+
+    public string trangthai { get; set; } = "hoat_dong";
 
     public virtual ICollection<chat> chatnguoiguiNavigation { get; set; } = new List<chat>();
 

@@ -55,8 +55,11 @@ public class AvailableFieldService
             var query = _context.sanbong
                 .Include(s => s.sanbongchitiet)
                     .ThenInclude(sc => sc.maloaisanNavigation)
+                .Include(s => s.danhgia)
+
                 .Include(s => s.sanbongchitiet)
                     .ThenInclude(sc => sc.danhgia)
+
                 .Where(s => s.daduyet == true)
                 .AsQueryable(); 
 

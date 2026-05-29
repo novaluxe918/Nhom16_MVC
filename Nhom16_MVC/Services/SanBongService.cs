@@ -1,16 +1,16 @@
-﻿using Microsoft.EntityFrameworkCore;
-using Nhom16_MVC.Data;
-using Nhom16_MVC.Models.DTOs;
+﻿using Nhom16_MVC.Models.DTOs;
+using Nhom16_MVC.Models.Entities;
+using Nhom16_MVC.Repositories;
 
 namespace Nhom16_MVC.Services
 {
-    public class SanBongService
+    public class SanBongService : ISanBongService
     {
-        private readonly AppDbContext _db;
+        private readonly ISanBongRepository _repository;
 
-        public SanBongService(AppDbContext db)
+        public SanBongService(ISanBongRepository repository)
         {
-            _db = db;
+            _repository = repository;
         }
         //public async Task<ChiTietSanMeDto> GetChiTietSanMeAsync(int maSanMenge)
         //{
@@ -87,6 +87,37 @@ namespace Nhom16_MVC.Services
                     AnhDaiDien = sc.media_sanbongchitiet.FirstOrDefault(m => m.loaimedia == "hinh_anh")?.link ?? sanBong.hinhanh
                 }).ToList()
             };
+
+            await _repository.Tao(san);
+            await _repository.Save();
+
+            return true;
+        }
+
+        public async Task<bool> CapNhatSan(int id, CapNhatSanBongDTO dto)
+        {
+            var san = await _repository.LayTheoId(id);
+
+            if (san == null)
+                return false;
+
+            san.tensan = dto.TenSan;
+            san.mota = dto.MoTa;
+            san.diachi = dto.DiaChi;
+            san.quan = dto.Quan;
+            san.huyen = dto.Huyen;
+            san.xa = dto.Xa;
+            san.thanhpho = dto.ThanhPho;
+            san.hinhanh = dto.HinhAnh;
+            san.kinhdo = dto.KinhDo;
+            san.vido = dto.ViDo;
+            san.updatedat = DateTime.UtcNow;
+
+            _repository.CapNhat(san);
+
+            await _repository.Save();
+
+            return true;
         }
 
         // Lấy danh sách Sân Mẹ (có hỗ trợ tìm theo tên)

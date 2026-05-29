@@ -11,14 +11,13 @@ namespace Nhom16_MVC.Controllers
 
         private readonly SearchService _searchService;
         private readonly AvailableFieldService _availableFieldService;
-        private readonly SanBongService _sanBongService;
+        private readonly ISanBongService _service;
 
-
-        public SanBongController(SearchService searchService, AvailableFieldService availableFieldService, SanBongService sanBongService)
+        public SanBongController(SearchService searchService, AvailableFieldService availableFieldService, ISanBongService service)
         {
             _searchService = searchService;
             _availableFieldService = availableFieldService;
-            _sanBongService = sanBongService;
+            _service = service;
         }
 
         [HttpGet("goi-y")]
@@ -65,32 +64,56 @@ namespace Nhom16_MVC.Controllers
         }
 
 
-        [HttpGet("danh-sach-loai-san")]
-        public async Task<IActionResult> GetLoaiSan()
+        [HttpGet]
+        public async Task<IActionResult> LayTatCa()
         {
-            var result = await _searchService.GetDanhSachLoaiSanAsync();
-            return Ok(new { Success = true, Data = result });
+            var data = await _service.LayTatCa();
+
+            return Ok(data);
         }
 
-        [HttpGet("danh-sach-quan")]
-        public async Task<IActionResult> GetQuan()
+        [HttpGet("{id}")]
+        public async Task<IActionResult> LayTheoId(int id)
         {
-            var result = await _searchService.GetDanhSachQuanAsync();
-            return Ok(new { Success = true, Data = result });
+            var data = await _service.LayTheoId(id);
+
+            if (data == null)
+                return NotFound("Không tìm thấy sân bóng");
+
+            return Ok(data);
         }
 
-        //api sân mẹ 
-        [HttpGet("chi-tiet-san-me/{id}")]
-        public async Task<IActionResult> GetChiTietSanMe(int id)
+        [HttpPost]
+        public async Task<IActionResult> TaoSan([FromBody] TaoSanBongDTO dto)
         {
-            var result = await _sanBongService.GetChiTietSanMeAsync(id);
+            var result = await _service.TaoSan(dto);
 
-            if (result == null)
-            {
-                return NotFound(new { Success = false, Message = "Không tìm thấy dữ liệu sân bóng hoặc sân chưa được phê duyệt." });
-            }
+            if (!result)
+                return BadRequest("Tạo sân thất bại");
 
-            return Ok(new { Success = true, Data = result });
+            return Ok("Tạo sân thành công");
+        }
+
+        [HttpPut("{id}")]
+        public async Task<IActionResult> CapNhatSan(int id, [FromBody] CapNhatSanBongDTO dto)
+        {
+            var result = await _service.CapNhatSan(id, dto);
+
+            if (!result)
+                return NotFound("Không tìm thấy sân bóng");
+
+            return Ok("Cập nhật thành công");
+        }
+
+        [HttpDelete("{id}")]
+        public async Task<IActionResult> XoaSan(int id)
+        {
+            var result = await _service.XoaSan(id);
+
+            if (!result)
+                return NotFound("Không tìm thấy sân bóng");
+
+            return Ok("Xóa thành công");
         }
 
         [HttpGet("danh-sach-san-me")]

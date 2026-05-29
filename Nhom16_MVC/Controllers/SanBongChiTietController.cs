@@ -7,17 +7,57 @@ namespace Nhom16_MVC.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
-    public class SanBongChiTietController : Controller
+    public class SanBongChiTietController : ControllerBase
     {
         private readonly SanBongChiTietService _sanBongChiTietService;
         private readonly BookingService _bookingService;
 
-        public SanBongChiTietController(SanBongChiTietService sanBongChiTietService, BookingService bookingService)
+        private readonly ISanBongChiTietService _service;
+
+        public SanBongChiTietController(SanBongChiTietService sanBongChiTietService, BookingService bookingService,ISanBongChiTietService service)
         {
             _sanBongChiTietService = sanBongChiTietService;
             _bookingService = bookingService;
+            _service = service;
+        }
+        
+         [HttpGet]
+        public async Task<IActionResult> GetAll()
+        {
+            return Ok(await _service.GetAll());
         }
 
+        [HttpGet("san/{id}")]
+        public async Task<IActionResult> GetBySan(int id)
+        {
+            return Ok(await _service.GetBySanBong(id));
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> Create(CreateSanConDTO dto)
+        {
+            return Ok(await _service.Create(dto));
+        }
+
+        [HttpPut("{id}")]
+        public async Task<IActionResult> Update(int id, UpdateSanConDTO dto)
+        {
+            var result = await _service.Update(id, dto);
+
+            if (!result) return NotFound();
+
+            return Ok(result);
+        }
+
+        [HttpDelete("{id}")]
+        public async Task<IActionResult> Delete(int id)
+        {
+            var result = await _service.Delete(id);
+
+            if (!result) return NotFound();
+
+            return Ok(result);
+        }
         //api lấy tt cơ bản của sân con 
         [HttpGet("{id}")]
         public async Task<IActionResult> GetThongTinSanCon(int id)

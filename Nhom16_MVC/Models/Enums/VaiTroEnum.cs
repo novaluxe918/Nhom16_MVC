@@ -1,16 +1,18 @@
-using NpgsqlTypes; 
+﻿using System.Runtime.Serialization;
+using System.Text.Json.Serialization;
 
 namespace Nhom16_MVC.Models.Enums
 {
+    [JsonConverter(typeof(JsonStringEnumConverter))]
     public enum VaiTroEnum
     {
-        [PgName("nguoiThue")]  
-        NguoiThue = 0,
+        [EnumMember(Value = "nguoiThue")]
+        nguoiThue = 0,
 
-        [PgName("chuSan")]    
-        ChuSan = 1,
+        [EnumMember(Value = "chuSan")]
+        chuSan = 1,
 
-        [PgName("admin")]    
-        Admin = 2
+        [EnumMember(Value = "admin")]
+        admin = 2
     }
 }

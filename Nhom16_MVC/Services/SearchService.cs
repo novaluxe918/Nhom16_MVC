@@ -1,7 +1,7 @@
 ﻿using Nhom16_MVC.Data;
 using Microsoft.EntityFrameworkCore;
 using Nhom16_MVC.Models.DTOs;
-using System.Security.Cryptography.X509Certificates;
+
 
 
 namespace Nhom16_MVC.Services
@@ -75,6 +75,9 @@ namespace Nhom16_MVC.Services
                 Console.WriteLine($"Lỗi lấy danh sách quận: {ex.Message}");
                 return new List<QuanItemDto>();
             }
+
         }
+
+        
     }
 }
