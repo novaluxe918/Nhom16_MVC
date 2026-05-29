@@ -94,4 +94,12 @@ app.UseAuthorization();
 // 5. Ánh xạ các Endpoint Controller
 app.MapControllers();
 
+app.UseCors("AllowReact");
+
+if (app.Environment.IsDevelopment())
+{
+    app.UseSwagger();
+    app.UseSwaggerUI();
+}
+
 app.Run();
