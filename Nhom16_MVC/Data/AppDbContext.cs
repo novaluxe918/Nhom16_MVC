@@ -1,4 +1,4 @@
-﻿using System;
+﻿﻿using System;
 using System.Collections.Generic;
 using Microsoft.EntityFrameworkCore;
 using Nhom16_MVC.Models.Entities;
@@ -102,13 +102,18 @@ public partial class AppDbContext : DbContext
                 .HasDefaultValueSql("now()")
                 .HasColumnType("timestamp without time zone");
 
-            entity.HasOne(d => d.masanbongNavigation).WithMany(p => p.danhgia)
-                .HasForeignKey(d => d.masanbong)
-                .HasConstraintName("danhgia_masanbong_fkey");
+            entity.HasOne(d => d.masanchitietNavigation)
+                .WithMany(p => p.danhgia)
+                .HasForeignKey(d => d.masanchitiet)
+                .OnDelete(DeleteBehavior.Cascade) // Nếu sân con bị xóa, tự động xóa sạch đánh giá của sân đó
+                .HasConstraintName("danhgia_masanchitiet_fkey");
 
             entity.HasOne(d => d.nguoithueNavigation).WithMany(p => p.danhgia)
                 .HasForeignKey(d => d.nguoithue)
                 .HasConstraintName("danhgia_nguoithue_fkey");
+
+          
+
         });
 
         modelBuilder.Entity<datsan>(entity =>
@@ -252,6 +257,16 @@ public partial class AppDbContext : DbContext
             entity.Property(e => e.updatedat)
                 .HasColumnName("updatedat")
                 .HasColumnType("timestamp without time zone");
+
+            entity.Property(e => e.giomocua)
+                .HasColumnName("giomocua")
+                .HasColumnType("time without time zone")
+                .HasDefaultValueSql("'06:00'");
+
+            entity.Property(e => e.giodongcua)
+                .HasColumnName("giodongcua")
+                .HasColumnType("time without time zone")
+                .HasDefaultValueSql("'22:00'");
         });
 
         modelBuilder.Entity<sanbongchitiet>(entity =>
