@@ -1,7 +1,4 @@
-
-using Microsoft.EntityFrameworkCore;
-using Nhom16_MVC.Data;
-using Nhom16_MVC.Models.DTOs;
+﻿using Nhom16_MVC.Models.DTOs;
 using Nhom16_MVC.Models.Entities;
 using Nhom16_MVC.Repositories;
 
@@ -10,139 +7,122 @@ namespace Nhom16_MVC.Services
     public class SanBongService : ISanBongService
     {
         private readonly ISanBongRepository _repository;
-        private readonly AppDbContext _db;
+
         public SanBongService(ISanBongRepository repository)
         {
             _repository = repository;
         }
 
-        public async Task<List<sanbong>> LayTatCaSan()
-        {
-            return await _repository.GetAllAsync();
-        }
-
-        public async Task<List<sanbong>> LaySanTheoChuSan(int chusan)
-        {
-            return await _repository.GetByChuSanAsync(chusan);
-        }
-
-        public async Task<sanbong?> LaySanTheoId(int id)
-        {
-            return await _repository.GetByIdAsync(id);
-        }
-
-        public async Task<bool> TaoSan(TaoSanBongDTO dto, int chusan)
+        public async Task<bool> TaoSan(TaoSanBongDTO dto)
         {
             var san = new sanbong
             {
-                chusan = chusan,
-                tensan = dto.tensan,
-                mota = dto.mota,
-                hinhanh = dto.hinhanh,
-                diachi = dto.diachi,
-                quan = dto.quan,
-                huyen = dto.huyen,
-                xa = dto.xa,
-                thanhpho = dto.thanhpho,
-                kinhdo = dto.kinhdo,
-                vido = dto.vido,
-                giomocua = dto.giomocua,
-                giodongcua = dto.giodongcua,
+                tensan = dto.TenSan,
+                mota = dto.MoTa,
+                diachi = dto.DiaChi,
+                quan = dto.Quan,
+                huyen = dto.Huyen,
+                xa = dto.Xa,
+                thanhpho = dto.ThanhPho,
+                hinhanh = dto.HinhAnh,
+                kinhdo = dto.KinhDo,
+                vido = dto.ViDo,
                 daduyet = false,
-                createdat = DateTime.UtcNow,
-                updatedat = DateTime.UtcNow
+                createdat = DateTime.UtcNow
             };
 
-            await _repository.AddAsync(san);
-            await _repository.SaveChangesAsync();
+            await _repository.Tao(san);
+            await _repository.Save();
 
             return true;
         }
 
         public async Task<bool> CapNhatSan(int id, CapNhatSanBongDTO dto)
         {
-            var san = await _repository.GetByIdAsync(id);
+            var san = await _repository.LayTheoId(id);
 
             if (san == null)
                 return false;
 
-            san.tensan = dto.tensan;
-            san.mota = dto.mota;
-            san.hinhanh = dto.hinhanh;
-            san.diachi = dto.diachi;
-            san.quan = dto.quan;
-            san.huyen = dto.huyen;
-            san.xa = dto.xa;
-            san.thanhpho = dto.thanhpho;
-            san.kinhdo = dto.kinhdo;
-            san.vido = dto.vido;
-            san.giomocua = dto.giomocua;
-            san.giodongcua = dto.giodongcua;
+            san.tensan = dto.TenSan;
+            san.mota = dto.MoTa;
+            san.diachi = dto.DiaChi;
+            san.quan = dto.Quan;
+            san.huyen = dto.Huyen;
+            san.xa = dto.Xa;
+            san.thanhpho = dto.ThanhPho;
+            san.hinhanh = dto.HinhAnh;
+            san.kinhdo = dto.KinhDo;
+            san.vido = dto.ViDo;
             san.updatedat = DateTime.UtcNow;
 
-            await _repository.UpdateAsync(san);
-            await _repository.SaveChangesAsync();
+            _repository.CapNhat(san);
+
+            await _repository.Save();
 
             return true;
         }
 
         public async Task<bool> XoaSan(int id)
         {
-            var san = await _repository.GetByIdAsync(id);
+            var san = await _repository.LayTheoId(id);
 
             if (san == null)
                 return false;
 
-            await _repository.DeleteAsync(san);
-            await _repository.SaveChangesAsync();
+            _repository.Xoa(san);
+
+            await _repository.Save();
 
             return true;
         }
 
-
-
-
-        public async Task<ChiTietSanMeDto> GetChiTietSanMeAsync(int maSanMenge)
-
+        public async Task<List<SanBongDTO>> LayTatCa()
         {
-            var sanBong = await _db.sanbong
-                .Include(s => s.media_sanbong)
-                .Include(s=>s.giomocua)
-                .Include(s=> s.giodongcua)
-                .Include(s => s.sanbongchitiet)
-                    .ThenInclude(sc => sc.maloaisanNavigation)
-                .Include(s => s.sanbongchitiet)
-                    .ThenInclude(sc => sc.media_sanbongchitiet)
-                .FirstOrDefaultAsync(s => s.masanbong == maSanMenge && s.daduyet == true);
+            var data = await _repository.LayTatCa();
 
-            if (sanBong == null) return null;
-
-            //var firstSubPitch =  sanBong.sanbongchitiet.FirstOrDefault();
-            string gioHoatDong = $"{sanBong.giomocua:HH:mm} - {sanBong.giodongcua:HH:mm}";
-
-            return new ChiTietSanMeDto
+            return data.Select(s => new SanBongDTO
             {
-                MaSanBong = sanBong.masanbong,
-                TenSan = sanBong.tensan,
-                MoTa = sanBong.mota,
-                DiaChi = sanBong.diachi,
-                Quan = sanBong.quan,
-                ThanhPhos = sanBong.thanhpho,
-                KinhDo = sanBong.kinhdo,
-                ViDo = sanBong.vido,
-                GioHoatDong = gioHoatDong, // Nhận giá trị chuỗi cấu hình chuẩn từ Sân mẹ
-                AlbumMedia = sanBong.media_sanbong.Select(m => m.link).ToList(),
-                DanhSachSanCon = sanBong.sanbongchitiet.Select(sc => new SanConTrongSanMeDto
-                {
-                    MaSanChiTiet = sc.masanchitiet,
-                    TenSanChiTiet = sc.tensanchitiet,
-                    LoaiSan = sc.maloaisanNavigation?.tenloaisan,
-                    GiaThueBuoiSang = sc.giathuebuoisang,
-                    GiaThueBuoiToi = sc.giathuebuoitoi,
-                    AnhDaiDien = sc.media_sanbongchitiet.FirstOrDefault(m => m.loaimedia == "hinh_anh")?.link ?? sanBong.hinhanh
-                }).ToList()
+                MaSanBong = s.masanbong,
+                ChuSan = s.chusan,
+                TenSan = s.tensan,
+                MoTa = s.mota,
+                DiaChi = s.diachi,
+                Quan = s.quan,
+                Huyen = s.huyen,
+                Xa = s.xa,
+                ThanhPho = s.thanhpho,
+                HinhAnh = s.hinhanh,
+                DaDuyet = s.daduyet,
+                KinhDo = s.kinhdo,
+                ViDo = s.vido
+            }).ToList();
+        }
+
+        public async Task<SanBongDTO?> LayTheoId(int id)
+        {
+            var s = await _repository.LayTheoId(id);
+
+            if (s == null)
+                return null;
+
+            return new SanBongDTO
+            {
+                MaSanBong = s.masanbong,
+                ChuSan = s.chusan,
+                TenSan = s.tensan,
+                MoTa = s.mota,
+                DiaChi = s.diachi,
+                Quan = s.quan,
+                Huyen = s.huyen,
+                Xa = s.xa,
+                ThanhPho = s.thanhpho,
+                HinhAnh = s.hinhanh,
+                DaDuyet = s.daduyet,
+                KinhDo = s.kinhdo,
+                ViDo = s.vido
             };
         }
-    }
-    }
 
+    }
+}

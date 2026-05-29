@@ -4,18 +4,16 @@ namespace Nhom16_MVC.Repositories
 {
     public interface ISanBongRepository
     {
-      Task<List<sanbong>> GetAllAsync();
+        Task<List<sanbong>> LayTatCa();
 
-        Task<List<sanbong>> GetByChuSanAsync(int chusan);
+        Task<sanbong?> LayTheoId(int id);
 
-        Task<sanbong?> GetByIdAsync(int id);
+        Task Tao(sanbong san);
 
-        Task AddAsync(sanbong san);
+        void CapNhat(sanbong san);
 
-        Task UpdateAsync(sanbong san);
+        void Xoa(sanbong san);
 
-        Task DeleteAsync(sanbong san);
-
-        Task SaveChangesAsync();
+        Task Save();
     }
 }
