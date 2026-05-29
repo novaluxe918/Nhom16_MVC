@@ -1,4 +1,4 @@
-﻿﻿using System;
+﻿using System;
 using System.Collections.Generic;
 using Microsoft.EntityFrameworkCore;
 using Nhom16_MVC.Models.Entities;
@@ -103,16 +103,18 @@ public partial class AppDbContext : DbContext
             entity.HasKey(e => e.madanhgia).HasName("danhgia_pkey");
 
             entity.Property(e => e.madanhgia).HasColumnName("madanhgia");
-            entity.Property(e => e.masanbong).HasColumnName("masanbong");
+            // SỬA TÊN CỘT: chuyển từ masanbong thành masanchitiet cho khớp với thực tế database/entity
+            entity.Property(e => e.masanchitiet).HasColumnName("masanchitiet");
             entity.Property(e => e.nguoithue).HasColumnName("nguoithue");
             entity.Property(e => e.diemso).HasColumnName("diemso");
             entity.Property(e => e.binhluan).HasColumnName("binhluan").HasColumnType("character varying");
             entity.Property(e => e.thoigiandanhgia).HasColumnName("thoigiandanhgia").HasColumnType("timestamp without time zone").HasDefaultValueSql("now()");
 
-            entity.HasOne(d => d.masanbongNavigation).WithMany(p => p.danhgia)
-                .HasForeignKey(d => d.masanbong)
+            // SỬA MỐI QUAN HỆ: Trỏ tới masanchitietNavigation thay vì masanbongNavigation
+            entity.HasOne(d => d.masanchitietNavigation).WithMany(p => p.danhgia)
+                .HasForeignKey(d => d.masanchitiet)
                 .OnDelete(DeleteBehavior.Cascade)
-                .HasConstraintName("danhgia_masanbong_fkey");
+                .HasConstraintName("danhgia_masanbong_fkey"); // Giữ nguyên tên FK dưới DB của bạn
 
             entity.HasOne(d => d.nguoithueNavigation).WithMany(p => p.danhgia)
                 .HasForeignKey(d => d.nguoithue)

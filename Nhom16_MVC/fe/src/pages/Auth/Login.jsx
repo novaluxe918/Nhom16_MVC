@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Mail, Lock, Eye, EyeOff } from 'lucide-react';
 import './Auth.css';
 
-const API_BASE_URL = "https://localhost:7295/api/Auth";
+const API_BASE_URL = "https://localhost:7295/api";
 
 export default function Login() {
     const navigate = useNavigate();
@@ -22,28 +22,40 @@ export default function Login() {
         };
 
         try {
-            const response = await fetch(`${API_BASE_URL}/login`, {
+            const response = await fetch(`${API_BASE_URL}/Auth/login`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(payload)
             });
 
+            if (!response.ok && response.status === 404) {
+                throw new Error("Không tìm thấy đường dẫn API endpoint trên Server (404).");
+            }
+
             const result = await response.json();
 
             if (response.ok && result.success) {
-                localStorage.setItem('token', result.data.token);
-                localStorage.setItem('userEmail', result.data.email);
-                localStorage.setItem('userHoTen', result.data.hoTen);
-                localStorage.setItem('userVaiTro', result.data.vaiTro);
+                localStorage.setItem('token', result.token);
+                localStorage.setItem('userEmail', email.trim());
+                localStorage.setItem('userHoTen', result.hoTen);
+                localStorage.setItem('userVaiTro', result.vaiTro);
 
                 alert("Đăng nhập thành công!");
-                window.location.href = "/";
+
+                // CẬP NHẬT LUỒNG ĐIỀU HƯỚNG THÔNG MINH:
+                if (result.vaiTro === 'admin') {
+                    navigate('/admin'); // Hoặc đường dẫn Dashboard quản trị của bạn (Ví dụ: /admin/dashboard)
+                } else if (result.vaiTro === 'chuSan') {
+                    navigate('/quan-ly-san');
+                } else {
+                    navigate('/'); // Khách thuê di chuyển về trang chủ xem danh sách sân
+                }
             } else {
                 alert(result.message || "Tài khoản hoặc mật khẩu không chính xác.");
             }
         } catch (error) {
             console.error("Lỗi đăng nhập:", error);
-            alert("Không thể kết nối đến máy chủ.");
+            alert(error.message || "Không thể kết nối đến máy chủ.");
         } finally {
             setLoading(false);
         }
@@ -73,6 +85,7 @@ export default function Login() {
                                     value={email}
                                     onChange={(e) => setEmail(e.target.value)}
                                     required
+                                    disabled={loading}
                                 />
                             </div>
                         </div>
@@ -87,6 +100,7 @@ export default function Login() {
                                     value={matKhau}
                                     onChange={(e) => setMatKhau(e.target.value)}
                                     required
+                                    disabled={loading}
                                 />
                                 <button type="button" className="input-icon-eye-right" onClick={() => setShowPass(!showPass)}>
                                     {showPass ? <EyeOff size={18} /> : <Eye size={18} />}

@@ -17,7 +17,8 @@ namespace Nhom16_MVC.Repositories
             int chusan,
             FilterDatSanDTO filter)
         {
-            var query = _context.chitietdatsans
+            // ĐÃ SỬA: Thay _context.chitietdatsans bằng _context.chitietdatsan (bỏ 's') cho khớp với AppDbContext
+            var query = _context.chitietdatsan
                 .Include(x => x.madatsanNavigation)
                     .ThenInclude(x => x.nguoithueNavigation)
                 .Include(x => x.masanchitietNavigation)
@@ -79,7 +80,8 @@ namespace Nhom16_MVC.Repositories
                     trangThaiDatSan =
                         x.trangthaidatsan.ToString(),
 
-                    coVanDe = x.covande ?? false
+                    // ĐÃ SỬA: Loại bỏ toán tử '?? false' vì x.covande đã là kiểu dữ liệu bool (không lo bị null)
+                    coVanDe = x.covande
                 })
                 .ToListAsync();
         }

@@ -18,7 +18,7 @@ var dataSourceBuilder = new NpgsqlDataSourceBuilder(connectionString);
 dataSourceBuilder.MapEnum<VaiTroEnum>("vai_tro_enum", nameTranslator: new NpgsqlNullNameTranslator());
 var dataSource = dataSourceBuilder.Build();
 
-// Đăng ký DbContext sử dụng dataSource đã map Enum (ĐÃ FIX LỖI DÒNG NÀY)
+// Đăng ký DbContext sử dụng dataSource đã map Enum
 builder.Services.AddDbContext<AppDbContext>(options => options.UseNpgsql(dataSource));
 
 builder.Services.AddControllers();
@@ -48,7 +48,7 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secretKey)),
             ValidateIssuer = false,
             ValidateAudience = false,
-            ClockSkew = TimeSpan.Zero // Triệt tiêu thời gian chênh lệch để hết hạn token chính xác hơn
+            ClockSkew = TimeSpan.Zero
         };
     });
 
@@ -59,20 +59,20 @@ builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowReactApp", policy =>
     {
-        policy.WithOrigins("http://localhost:5173") // Định danh chính xác cổng Front-End của bạn
-              .AllowAnyMethod()                     // Cho phép POST, GET, PUT, DELETE
-              .AllowAnyHeader()                     // Cho phép mọi Header truyền lên
-              .AllowCredentials();                  // Hỗ trợ nếu sau này có dùng Cookie/Session
+        policy.WithOrigins("http://localhost:5173")
+              .AllowAnyMethod()
+              .AllowAnyHeader()
+              .AllowCredentials();
     });
 });
 
 var app = builder.Build();
 
 // =========================================================================
-// ⚡ THỨ TỰ MIDDLEWARE ĐÃ ĐƯỢC SỬA LẠI ĐỂ SỬA LỖI CORS ⚡
+// ⚡ THỨ TỰ MIDDLEWARE CHUẨN ĐÃ ĐƯỢC TỐI ƯU ⚡
 // =========================================================================
 
-// 1. Phải đặt CORS lên đầu tiên để duyệt qua Preflight Request từ trình duyệt của React
+// 1. Phải đặt CORS lên đầu tiên để duyệt qua Preflight Request
 app.UseCors("AllowReactApp");
 
 if (app.Environment.IsDevelopment())
@@ -93,13 +93,5 @@ app.UseAuthorization();
 
 // 5. Ánh xạ các Endpoint Controller
 app.MapControllers();
-
-app.UseCors("AllowReact");
-
-if (app.Environment.IsDevelopment())
-{
-    app.UseSwagger();
-    app.UseSwaggerUI();
-}
 
 app.Run();

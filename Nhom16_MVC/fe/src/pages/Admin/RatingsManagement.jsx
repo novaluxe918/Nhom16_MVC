@@ -1,5 +1,5 @@
 ﻿import React, { useState, useEffect } from 'react';
-import AdminLayout from './AdminLayout';
+import AdminLayout from './AdminLayout'; // 🎯 ĐÃ KHÔI PHỤC: Import lại Layout chuẩn
 import { Search, Star, Trash2, RefreshCw } from 'lucide-react';
 
 export default function RatingsManagement() {
@@ -9,15 +9,22 @@ export default function RatingsManagement() {
     const [searchTerm, setSearchTerm] = useState("");
     const [loading, setLoading] = useState(true);
 
+    // ✅ Giữ nguyên logic sửa lỗi đọc mảng trực tiếp từ Backend
     const fetchRatings = async () => {
         setLoading(true);
         try {
             const res = await fetch(`${BASE_URL}/RatingManagement/all-ratings`, {
-                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` }
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                }
             });
-            const result = await res.json();
-            if (result.success) {
-                setRatings(result.data || []);
+
+            if (res.ok) {
+                const data = await res.json(); // Nhận trực tiếp mảng dữ liệu [...] từ BE
+                setRatings(data || []);
+            } else {
+                console.error("Lỗi phản hồi hệ thống, mã lỗi:", res.status);
             }
         } catch (error) {
             console.error("Lỗi kết nối API:", error);
@@ -26,29 +33,35 @@ export default function RatingsManagement() {
         }
     };
 
-    useEffect(() => { fetchRatings(); }, []);
+    useEffect(() => {
+        fetchRatings();
+    }, []);
 
     const handleDeleteRating = async (maDanhGia) => {
         if (!window.confirm("Báo cáo: Bạn có chắc chắn gỡ bỏ vĩnh viễn đánh giá này?")) return;
         try {
             const res = await fetch(`${BASE_URL}/RatingManagement/delete-rating`, {
                 method: 'DELETE',
-                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
                 body: JSON.stringify({ maDanhGia })
             });
+
             const result = await res.json();
-            if (result.success) {
+            if (result.success || result.Success) {
                 alert("Đã gỡ bỏ đánh giá thành công!");
                 fetchRatings();
             } else {
-                alert(result.message || "Không thể xóa đánh giá này.");
+                alert(result.message || result.Message || "Không thể xóa đánh giá này.");
             }
         } catch (error) {
             console.error("Lỗi khi thực hiện xóa:", error);
         }
     };
 
-    // 🚀 ĐÃ SỬA: Chống sập màn hình (nhận cả chữ HOA/thường từ BE) & Sửa lỗi tìm kiếm .toLowerCase()
+    // Lọc tìm kiếm theo tên khách hàng hoặc tên sân bóng
     const filtered = ratings.filter(r => {
         const tenKhach = (r.tenNguoiDung || r.TenNguoiDung || "").toString().toLowerCase();
         const tenSan = (r.tenSanBong || r.TenSanBong || "").toString().toLowerCase();
@@ -58,7 +71,7 @@ export default function RatingsManagement() {
     });
 
     return (
-        <AdminLayout activeTab="ratings">
+        <AdminLayout activeTab="ratings"> {/* 🎯 ĐÃ KHÔI PHỤC: Khung sườn chuẩn của hệ thống */}
             <h1 className="page-title">Kiểm duyệt đánh giá</h1>
             <p className="page-subtitle" style={{ marginBottom: '24px' }}>Quản lý chất lượng nhận xét từ khách hàng</p>
 
@@ -96,7 +109,6 @@ export default function RatingsManagement() {
                         </thead>
                         <tbody>
                             {filtered.map(r => {
-                                // Bọc lót lấy data linh hoạt Hoa/Thường để không bao giờ bị undefined
                                 const id = r.maDanhGia || r.MaDanhGia;
                                 const khachHang = r.tenNguoiDung || r.TenNguoiDung;
                                 const sanBong = r.tenSanBong || r.TenSanBong;
