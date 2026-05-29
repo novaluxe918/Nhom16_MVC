@@ -26,24 +26,11 @@ namespace Nhom16_MVC.Models.DTOs
         public string MatKhau { get; set; } = string.Empty;
 
         [Required(ErrorMessage = "Vai trò không được để trống")]
-        public VaiTroEnum VaiTro { get; set; } = VaiTroEnum.nguoiThue;
+        public string VaiTro { get; set; } = string.Empty;
     }
 
     /// <summary>
-    /// DTO để đăng nhập
-    /// </summary>
-    public class LoginDto
-    {
-        [Required(ErrorMessage = "Email không được để trống")]
-        [EmailAddress(ErrorMessage = "Email không đúng định dạng")]
-        public string Email { get; set; } = string.Empty;
-
-        [Required(ErrorMessage = "Mật khẩu không được để trống")]
-        public string MatKhau { get; set; } = string.Empty;
-    }
-
-    /// <summary>
-    /// DTO để xác thực email bằng OTP
+    /// DTO để xác thực email qua mã OTP
     /// </summary>
     public class VerifyEmailDto
     {
@@ -80,7 +67,20 @@ namespace Nhom16_MVC.Models.DTOs
         public string OTP { get; set; } = string.Empty;
 
         [Required(ErrorMessage = "Mật khẩu mới không được để trống")]
-        [StringLength(255, MinimumLength = 6, ErrorMessage = "Mật khẩu phải từ 6 ký tự trở lên")]
+        [StringLength(255, MinimumLength = 6, ErrorMessage = "Mật khẩu mới phải từ 6 ký tự trở lên")]
         public string MatKhauMoi { get; set; } = string.Empty;
+    }
+
+    /// <summary>
+    /// DTO để đăng nhập hệ thống
+    /// </summary>
+    public class LoginDto
+    {
+        [Required(ErrorMessage = "Email không được để trống")]
+        [EmailAddress(ErrorMessage = "Email không đúng định dạng")]
+        public string Email { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "Mật khẩu không được để trống")]
+        public string MatKhau { get; set; } = string.Empty;
     }
 }

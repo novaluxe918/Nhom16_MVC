@@ -39,14 +39,23 @@ namespace Nhom16_MVC.Controllers
             if (!result.Success)
                 return StatusCode(result.ErrorDetail != null ? 500 : 400, new { success = false, message = result.Message, error = result.ErrorDetail });
 
-            return Ok(new { success = true, message = result.Message, userId = result.Data });
+            return Ok(new
+            {
+                success = true,
+                message = result.Message,
+                userId = result.Data?.UserId,
+                email = result.Data?.Email,
+                hoTen = result.Data?.HoTen,
+                vaiTro = result.Data?.VaiTro,
+                token = result.Data?.Token
+            });
         }
 
-        [HttpPost("resend-email-otp")]
-        public async Task<IActionResult> ResendEmailOtp([FromBody] ForgotPasswordDto model)
+        [HttpPost("resend-otp")]
+        public async Task<IActionResult> ResendOtp([FromBody] ForgotPasswordDto model)
         {
             if (model == null || !ModelState.IsValid)
-                return BadRequest(new { success = false, message = "Email không hợp lệ!" });
+                return BadRequest(new { success = false, message = "Dữ liệu không hợp lệ!" });
 
             var result = await _authService.ResendEmailOtpAsync(model);
             if (!result.Success)
@@ -59,19 +68,18 @@ namespace Nhom16_MVC.Controllers
         public async Task<IActionResult> Login([FromBody] LoginDto model)
         {
             if (model == null || !ModelState.IsValid)
-                return BadRequest(new { success = false, message = "Email và mật khẩu không hợp lệ!" });
+                return BadRequest(new { success = false, message = "Dữ liệu không hợp lệ!" });
 
             var result = await _authService.LoginAsync(model);
             if (!result.Success)
             {
                 if (result.RequiresEmailVerification)
                 {
-                    return BadRequest(new { success = false, message = result.Message, requiresEmailVerification = true, userId = result.Data?.UserId });
+                    return StatusCode(403, new { success = false, message = result.Message, requiresVerification = true });
                 }
-                return Unauthorized(new { success = false, message = result.Message, error = result.ErrorDetail });
+                return StatusCode(result.ErrorDetail != null ? 500 : 401, new { success = false, message = result.Message, error = result.ErrorDetail });
             }
 
-            // 🌟 TRẢ THÊM TRƯỜNG TOKEN RA CHO POSTMAN/FRONTEND
             return Ok(new
             {
                 success = true,
@@ -80,7 +88,7 @@ namespace Nhom16_MVC.Controllers
                 email = result.Data?.Email,
                 hoTen = result.Data?.HoTen,
                 vaiTro = result.Data?.VaiTro,
-                token = result.Data?.Token // Đã xuất trường token ở đây
+                token = result.Data?.Token
             });
         }
 

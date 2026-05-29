@@ -5,13 +5,14 @@ using Nhom16_MVC.Data;
 using Nhom16_MVC.Helpers;
 using Nhom16_MVC.Models.DTOs;
 using Nhom16_MVC.Models.Entities;
+using Nhom16_MVC.Models.Enums;
 
 namespace Nhom16_MVC.Services
 {
     public interface IAuthService
     {
         Task<ServiceResponse<int>> RegisterAsync(AuthDTOs model);
-        Task<ServiceResponse<int>> VerifyEmailAsync(VerifyEmailDto model);
+        Task<ServiceResponse<LoginResultDto>> VerifyEmailAsync(VerifyEmailDto model);
         Task<ServiceResponse<bool>> ResendEmailOtpAsync(ForgotPasswordDto model);
         Task<ServiceResponse<LoginResultDto>> LoginAsync(LoginDto model);
         Task<ServiceResponse<int>> ForgotPasswordAsync(ForgotPasswordDto model);
@@ -24,7 +25,7 @@ namespace Nhom16_MVC.Services
         public string Email { get; set; } = string.Empty;
         public string HoTen { get; set; } = string.Empty;
         public string VaiTro { get; set; } = string.Empty;
-        public string Token { get; set; } = string.Empty; // Thêm trường Token vào DTO kết quả
+        public string Token { get; set; } = string.Empty;
     }
 
     public class ServiceResponse<T>
@@ -32,18 +33,19 @@ namespace Nhom16_MVC.Services
         public bool Success { get; set; } = true;
         public string Message { get; set; } = string.Empty;
         public T? Data { get; set; }
-        public bool EmailSent { get; set; } = true;
-        public bool RequiresEmailVerification { get; set; } = false;
         public string? ErrorDetail { get; set; }
+        public bool EmailSent { get; set; } = false;
+
+        // Sửa lỗi: Thêm định nghĩa thuộc tính này để Controller không bị lỗi biên dịch
+        public bool RequiresEmailVerification { get; set; } = false;
     }
 
     public class AuthService : IAuthService
     {
         private readonly AppDbContext _context;
         private readonly EmailHelper _emailHelper;
-        private readonly JwtHelper _jwtHelper; // Khai báo thêm JwtHelper
+        private readonly JwtHelper _jwtHelper;
 
-        // Tiêm JwtHelper vào qua Constructor
         public AuthService(AppDbContext context, EmailHelper emailHelper, JwtHelper jwtHelper)
         {
             _context = context;
@@ -53,349 +55,331 @@ namespace Nhom16_MVC.Services
 
         public async Task<ServiceResponse<int>> RegisterAsync(AuthDTOs model)
         {
-            var response = new ServiceResponse<int>();
             try
             {
-                var userExists = await _context.nguoidung.AnyAsync(u => u.email == model.Email.ToLower().Trim());
-                if (userExists)
+                // 1. Kiểm tra trùng lặp Email hoặc Số điện thoại
+                var isExist = await _context.nguoidung.AnyAsync(u => u.email == model.Email || u.sodienthoai == model.SoDienThoai);
+                if (isExist)
                 {
-                    response.Success = false;
-                    response.Message = "Email này đã được đăng ký!";
-                    return response;
-                }
-
-                if (!string.IsNullOrEmpty(model.SoDienThoai))
-                {
-                    var phoneExists = await _context.nguoidung.AnyAsync(u => u.sodienthoai == model.SoDienThoai.Trim());
-                    if (phoneExists)
+                    return new ServiceResponse<int>
                     {
-                        response.Success = false;
-                        response.Message = "Số điện thoại này đã được đăng ký!";
-                        return response;
-                    }
+                        Success = false,
+                        Message = "Email hoặc số điện thoại này đã được sử dụng trong hệ thống!"
+                    };
                 }
 
-                string otp = new Random().Next(100000, 999999).ToString();
-
-                DateTime nowLocal = DateTime.Now;
-                DateTime expiryTime = nowLocal.AddMinutes(15);
-
-                var newUser = new nguoidung
+                // 2. Ép kiểu an toàn từ chuỗi String sang VaiTroEnum
+                if (!Enum.TryParse<VaiTroEnum>(model.VaiTro, true, out var parsedRole))
                 {
-                    hoten = model.HoTen.Trim(),
-                    email = model.Email.ToLower().Trim(),
-                    sodienthoai = model.SoDienThoai?.Trim(),
+                    parsedRole = VaiTroEnum.nguoiThue;
+                }
+
+                // 3. Tạo mã OTP ngẫu nhiên
+                var random = new Random();
+                string otp = random.Next(100000, 999999).ToString();
+
+                // 4. Khởi tạo đối tượng thực thể (Đồng bộ DateTime.Now tránh lệch múi giờ Postgres)
+                var user = new nguoidung
+                {
+                    hoten = model.HoTen,
+                    email = model.Email,
+                    sodienthoai = model.SoDienThoai,
                     matkhau = BCrypt.Net.BCrypt.HashPassword(model.MatKhau),
-                    vaitro = model.VaiTro,
+                    vaitro = parsedRole,
+                    sodutaikhoan = 0,
                     isemailverified = false,
                     verificationtoken = otp,
-                    tokenexpiry = DateTime.SpecifyKind(expiryTime, DateTimeKind.Unspecified),
-                    sodutaikhoan = 0,
-                    createdat = DateTime.SpecifyKind(nowLocal, DateTimeKind.Unspecified)
+                    tokenexpiry = DateTime.Now.AddMinutes(15),
+                    trangthai = "hoat_dong",
+                    createdat = DateTime.Now
                 };
 
-                _context.nguoidung.Add(newUser);
+                _context.nguoidung.Add(user);
                 await _context.SaveChangesAsync();
 
-                response.Data = newUser.manguoidung;
-
+                // 5. Gửi Email OTP kích hoạt tài khoản
+                bool emailSent = false;
                 try
                 {
-                    await _emailHelper.SendEmailAsync(
-                        newUser.email,
-                        "Xác Thực Email - SportSync",
-                        GetEmailHtmlTemplate(newUser.hoten, otp, "Xác Thực Email Tài Khoản", "Cảm ơn bạn đã đăng ký tài khoản SportSync! Mã OTP xác thực email của bạn là:", "#007bff")
-                    );
+                    string emailBody = GetOtpEmailTemplate(model.HoTen, otp, "Cảm ơn bạn đã đăng ký tài khoản tại SportSync. Vui lòng sử dụng mã OTP dưới đây để hoàn tất xác thực tài khoản.");
+                    await _emailHelper.SendEmailAsync(model.Email, "Xác Thực Đăng Ký Tài Khoản - SportSync", emailBody);
+                    emailSent = true;
                 }
-                catch
+                catch (Exception ex)
                 {
-                    response.EmailSent = false;
-                    response.Message = "Đăng ký thành công! Tuy nhiên gửi email thất bại. Vui lòng yêu cầu gửi lại OTP.";
-                    return response;
+                    Console.WriteLine($"Lỗi gửi email: {ex.Message}");
                 }
 
-                response.Message = "Đăng ký thành công! OTP xác thực đã được gửi đến email of bạn.";
-            }
-            catch (DbUpdateException dbEx)
-            {
-                response.Success = false;
-                response.Message = "Lỗi cơ sở dữ liệu khi đăng ký tài khoản.";
-                response.ErrorDetail = dbEx.InnerException?.Message ?? dbEx.Message;
+                return new ServiceResponse<int>
+                {
+                    Success = true,
+                    Message = "Đăng ký tài khoản thành công! Vui lòng kiểm tra email để lấy mã OTP xác thực.",
+                    Data = user.manguoidung,
+                    EmailSent = emailSent
+                };
             }
             catch (Exception ex)
             {
-                response.Success = false;
-                response.Message = "Lỗi hệ thống khi đăng ký tài khoản.";
-                response.ErrorDetail = ex.Message;
+                return new ServiceResponse<int>
+                {
+                    Success = false,
+                    Message = "Xảy ra lỗi hệ thống trong quá trình đăng ký tài khoản.",
+                    ErrorDetail = ex.InnerException?.Message ?? ex.Message
+                };
             }
-            return response;
         }
 
-        public async Task<ServiceResponse<int>> VerifyEmailAsync(VerifyEmailDto model)
+        public async Task<ServiceResponse<LoginResultDto>> VerifyEmailAsync(VerifyEmailDto model)
         {
-            var response = new ServiceResponse<int>();
             try
             {
-                var user = await _context.nguoidung.FirstOrDefaultAsync(u => u.email == model.Email.ToLower().Trim());
+                var user = await _context.nguoidung.FirstOrDefaultAsync(u => u.email == model.Email);
                 if (user == null)
-                {
-                    response.Success = false;
-                    response.Message = "Email không tồn tại!";
-                    return response;
-                }
+                    return new ServiceResponse<LoginResultDto> { Success = false, Message = "Tài khoản không tồn tại." };
 
                 if (user.isemailverified == true)
-                {
-                    response.Success = false;
-                    response.Message = "Email này đã được xác thực rồi!";
-                    return response;
-                }
+                    return new ServiceResponse<LoginResultDto> { Success = false, Message = "Tài khoản này đã được xác thực từ trước." };
 
-                if (user.verificationtoken != model.OTP.Trim())
-                {
-                    response.Success = false;
-                    response.Message = "OTP không chính xác!";
-                    return response;
-                }
-
-                if (user.tokenexpiry == null || user.tokenexpiry < DateTime.Now)
-                {
-                    response.Success = false;
-                    response.Message = "OTP đã hết hạn! Vui lòng yêu cầu gửi lại OTP.";
-                    return response;
-                }
+                // Sửa model.Otp thành model.OTP cho đúng thuộc tính AuthDTOs.cs
+                if (user.verificationtoken != model.OTP || user.tokenexpiry < DateTime.Now)
+                    return new ServiceResponse<LoginResultDto> { Success = false, Message = "Mã xác thực không chính xác hoặc đã hết hạn." };
 
                 user.isemailverified = true;
                 user.verificationtoken = null;
                 user.tokenexpiry = null;
 
                 await _context.SaveChangesAsync();
-                response.Data = user.manguoidung;
-                response.Message = "Xác thực email thành công! Bây giờ bạn có thể đăng nhập.";
+
+                // Đã an toàn nhờ hàm nạp chồng (overload) 2 tham số trong JwtHelper
+                string token = _jwtHelper.GenerateToken(user, user.vaitro.ToString());
+
+                return new ServiceResponse<LoginResultDto>
+                {
+                    Success = true,
+                    Message = "Xác thực email thành công! Đã tự động đăng nhập vào hệ thống.",
+                    Data = new LoginResultDto
+                    {
+                        UserId = user.manguoidung,
+                        Email = user.email,
+                        HoTen = user.hoten,
+                        VaiTro = user.vaitro.ToString(),
+                        Token = token
+                    }
+                };
             }
             catch (Exception ex)
             {
-                response.Success = false;
-                response.Message = "Lỗi hệ thống khi xác thực email.";
-                response.ErrorDetail = ex.Message;
+                return new ServiceResponse<LoginResultDto> { Success = false, Message = "Lỗi hệ thống khi xác thực.", ErrorDetail = ex.Message };
             }
-            return response;
         }
 
         public async Task<ServiceResponse<bool>> ResendEmailOtpAsync(ForgotPasswordDto model)
         {
-            var response = new ServiceResponse<bool>();
             try
             {
-                var user = await _context.nguoidung.FirstOrDefaultAsync(u => u.email == model.Email.ToLower().Trim());
+                var user = await _context.nguoidung.FirstOrDefaultAsync(u => u.email == model.Email);
                 if (user == null)
-                {
-                    response.Success = false;
-                    response.Message = "Email không tồn tại!";
-                    return response;
-                }
+                    return new ServiceResponse<bool> { Success = false, Message = "Không tìm thấy tài khoản với email này." };
 
-                if (user.isemailverified == true)
-                {
-                    response.Success = false;
-                    response.Message = "Email này đã được xác thực rồi!";
-                    return response;
-                }
+                var random = new Random();
+                string otp = random.Next(100000, 999999).ToString();
 
-                string otp = new Random().Next(100000, 999999).ToString();
                 user.verificationtoken = otp;
-                user.tokenexpiry = DateTime.SpecifyKind(DateTime.Now.AddMinutes(15), DateTimeKind.Unspecified);
+                user.tokenexpiry = DateTime.Now.AddMinutes(15);
 
                 await _context.SaveChangesAsync();
-                response.Data = true;
 
+                bool emailSent = false;
                 try
                 {
-                    await _emailHelper.SendEmailAsync(
-                        user.email,
-                        "Gửi Lại OTP Xác Thực - SportSync",
-                        GetEmailHtmlTemplate(user.hoten, otp, "Mã OTP Xác Thực Email", "Dưới đây là mã OTP mới để xác thực email của bạn:", "#007bff")
-                    );
+                    string emailBody = GetOtpEmailTemplate(user.hoten, otp, "Hệ thống đã tạo một mã OTP mới theo yêu cầu của bạn. Vui lòng nhập mã này để xác thực.");
+                    await _emailHelper.SendEmailAsync(user.email, "Gửi Lại Mã Xác Thực OTP - SportSync", emailBody);
+                    emailSent = true;
                 }
-                catch
+                catch (Exception ex)
                 {
-                    response.EmailSent = false;
-                    response.Message = "OTP mới đã được tạo nhưng gửi email thất bại!";
-                    return response;
+                    Console.WriteLine($"Lỗi gửi lại email: {ex.Message}");
                 }
 
-                response.Message = "OTP mới đã được gửi đến email của bạn!";
+                return new ServiceResponse<bool>
+                {
+                    Success = true,
+                    Message = "Mã OTP mới đã được gửi vào email của bạn.",
+                    Data = true,
+                    EmailSent = emailSent
+                };
             }
             catch (Exception ex)
             {
-                response.Success = false;
-                response.Message = "Lỗi hệ thống khi gửi lại OTP.";
-                response.ErrorDetail = ex.Message;
+                return new ServiceResponse<bool> { Success = false, Message = "Lỗi hệ thống khi gửi lại mã OTP.", ErrorDetail = ex.Message };
             }
-            return response;
         }
 
         public async Task<ServiceResponse<LoginResultDto>> LoginAsync(LoginDto model)
         {
-            var response = new ServiceResponse<LoginResultDto>();
             try
             {
-                var user = await _context.nguoidung.FirstOrDefaultAsync(u => u.email == model.Email.ToLower().Trim());
+                var user = await _context.nguoidung.FirstOrDefaultAsync(u => u.email == model.Email);
                 if (user == null || !BCrypt.Net.BCrypt.Verify(model.MatKhau, user.matkhau))
-                {
-                    response.Success = false;
-                    response.Message = "Tài khoản hoặc mật khẩu không chính xác!";
-                    return response;
-                }
+                    return new ServiceResponse<LoginResultDto> { Success = false, Message = "Email hoặc mật khẩu không chính xác." };
 
                 if (user.isemailverified != true)
                 {
-                    response.Success = false;
-                    response.RequiresEmailVerification = true;
-                    response.Message = "Email chưa được xác thực! Vui lòng kiểm tra email và nhập OTP.";
-                    response.Data = new LoginResultDto { UserId = user.manguoidung };
-                    return response;
+                    return new ServiceResponse<LoginResultDto>
+                    {
+                        Success = false,
+                        RequiresEmailVerification = true, // Gắn cờ true để controller nhận diện
+                        Message = "Tài khoản của bạn chưa được xác thực email. Vui lòng xác thực trước khi đăng nhập!"
+                    };
                 }
 
-                // 🌟 TẠO TOKEN JWT: Gọi hàm sinh token thông qua đối tượng user
-                string generatedToken = _jwtHelper.GenerateToken(user);
+                if (user.trangthai == "bi_khoa")
+                    return new ServiceResponse<LoginResultDto> { Success = false, Message = "Tài khoản của bạn hiện đang bị khóa." };
 
-                response.Data = new LoginResultDto
+                // Đã an toàn nhờ hàm nạp chồng (overload) 2 tham số trong JwtHelper
+                string token = _jwtHelper.GenerateToken(user, user.vaitro.ToString());
+
+                return new ServiceResponse<LoginResultDto>
                 {
-                    UserId = user.manguoidung,
-                    Email = user.email,
-                    HoTen = user.hoten,
-                    VaiTro = user.vaitro.ToString(),
-                    Token = generatedToken // Trả kèm token về
+                    Success = true,
+                    Message = "Đăng nhập thành công!",
+                    Data = new LoginResultDto
+                    {
+                        UserId = user.manguoidung,
+                        Email = user.email,
+                        HoTen = user.hoten,
+                        VaiTro = user.vaitro.ToString(),
+                        Token = token
+                    }
                 };
-                response.Message = "Đăng nhập thành công!";
             }
             catch (Exception ex)
             {
-                response.Success = false;
-                response.Message = "Lỗi hệ thống khi đăng nhập.";
-                response.ErrorDetail = ex.Message;
+                return new ServiceResponse<LoginResultDto> { Success = false, Message = "Lỗi hệ thống khi đăng nhập.", ErrorDetail = ex.Message };
             }
-            return response;
         }
 
         public async Task<ServiceResponse<int>> ForgotPasswordAsync(ForgotPasswordDto model)
         {
-            var response = new ServiceResponse<int>();
             try
             {
-                var user = await _context.nguoidung.FirstOrDefaultAsync(u => u.email == model.Email.ToLower().Trim());
+                var user = await _context.nguoidung.FirstOrDefaultAsync(u => u.email == model.Email);
                 if (user == null)
-                {
-                    response.Success = false;
-                    response.Message = "Email không tồn tại!";
-                    return response;
-                }
+                    return new ServiceResponse<int> { Success = false, Message = "Email không tồn tại trong hệ thống." };
 
-                string otp = new Random().Next(100000, 999999).ToString();
+                var random = new Random();
+                string otp = random.Next(100000, 999999).ToString();
+
                 user.verificationtoken = otp;
-                user.tokenexpiry = DateTime.SpecifyKind(DateTime.Now.AddMinutes(15), DateTimeKind.Unspecified);
+                user.tokenexpiry = DateTime.Now.AddMinutes(15);
 
                 await _context.SaveChangesAsync();
-                response.Data = user.manguoidung;
 
+                bool emailSent = false;
                 try
                 {
-                    await _emailHelper.SendEmailAsync(
-                        user.email,
-                        "Mã OTP Khôi Phục Mật Khẩu - SportSync",
-                        GetEmailHtmlTemplate(user.hoten, otp, "Khôi Phục Mật Khẩu", "Chúng tôi nhận được yêu cầu khôi phục mật khẩu cho tài khoản của bạn. Mã OTP của bạn là:", "#ff6b6b")
-                    );
+                    string emailBody = GetOtpEmailTemplate(user.hoten, otp, "Bạn đã yêu cầu khôi phục mật khẩu. Vui lòng sử dụng mã OTP dưới đây để thiết lập lại mật khẩu mới.");
+                    await _emailHelper.SendEmailAsync(user.email, "Yêu Cầu Khôi Phục Mật Khẩu - SportSync", emailBody);
+                    emailSent = true;
                 }
-                catch
+                catch (Exception ex)
                 {
-                    response.EmailSent = false;
-                    response.Message = "OTP khôi phục đã được tạo nhưng gửi email thất bại!";
-                    return response;
+                    Console.WriteLine($"Lỗi gửi mail quên mật khẩu: {ex.Message}");
                 }
 
-                response.Message = "Mã OTP đã được gửi đến email của bạn! Vui lòng kiểm tra email.";
-            }
-            catch (DbUpdateException dbEx)
-            {
-                response.Success = false;
-                response.Message = "Lỗi cơ sở dữ liệu khi yêu cầu khôi phục mật khẩu.";
-                response.ErrorDetail = dbEx.InnerException?.Message ?? dbEx.Message;
+                return new ServiceResponse<int>
+                {
+                    Success = true,
+                    Message = "Mã OTP khôi phục mật khẩu đã được gửi qua email.",
+                    Data = user.manguoidung,
+                    EmailSent = emailSent
+                };
             }
             catch (Exception ex)
             {
-                response.Success = false;
-                response.Message = "Lỗi hệ thống khi yêu cầu khôi phục mật khẩu.";
-                response.ErrorDetail = ex.Message;
+                return new ServiceResponse<int> { Success = false, Message = "Lỗi hệ thống xử lý quên mật khẩu.", ErrorDetail = ex.Message };
             }
-            return response;
         }
 
         public async Task<ServiceResponse<bool>> ResetPasswordAsync(ResetPasswordDto model)
         {
-            var response = new ServiceResponse<bool>();
             try
             {
-                var user = await _context.nguoidung.FirstOrDefaultAsync(u => u.email == model.Email.ToLower().Trim());
+                var user = await _context.nguoidung.FirstOrDefaultAsync(u => u.email == model.Email);
                 if (user == null)
-                {
-                    response.Success = false;
-                    response.Message = "Email không tồn tại!";
-                    return response;
-                }
+                    return new ServiceResponse<bool> { Success = false, Message = "Tài khoản không tồn tại." };
 
-                if (user.verificationtoken != model.OTP.Trim())
-                {
-                    response.Success = false;
-                    response.Message = "OTP không chính xác!";
-                    return response;
-                }
+                if (user.verificationtoken != model.OTP || user.tokenexpiry < DateTime.Now)
+                    return new ServiceResponse<bool> { Success = false, Message = "Mã OTP khôi phục không chính xác hoặc đã hết hạn." };
 
-                if (user.tokenexpiry == null || user.tokenexpiry < DateTime.Now)
-                {
-                    response.Success = false;
-                    response.Message = "OTP đã hết hạn! Vui lòng yêu cầu OTP mới.";
-                    return response;
-                }
-
+                // ĐÃ FIX LỖI: Chuyển đổi hoàn toàn sang model.MatKhauMoi cho khớp với AuthDTOs.cs
                 user.matkhau = BCrypt.Net.BCrypt.HashPassword(model.MatKhauMoi);
                 user.verificationtoken = null;
                 user.tokenexpiry = null;
 
                 await _context.SaveChangesAsync();
-                response.Data = true;
-                response.Message = "Đặt lại mật khẩu thành công! Bạn đã có thể đăng nhập với mật khẩu mới.";
+
+                return new ServiceResponse<bool> { Success = true, Message = "Đặt lại mật khẩu thành công! Hãy đăng nhập lại bằng mật khẩu mới.", Data = true };
             }
             catch (Exception ex)
             {
-                response.Success = false;
-                response.Message = "Lỗi hệ thống khi đặt lại mật khẩu.";
-                response.ErrorDetail = ex.Message;
+                return new ServiceResponse<bool> { Success = false, Message = "Lỗi hệ thống khi đặt lại mật khẩu.", ErrorDetail = ex.Message };
             }
-            return response;
         }
 
-        private string GetEmailHtmlTemplate(string name, string otp, string title, string bodyText, string themeColor)
+        private string GetOtpEmailTemplate(string name, string otp, string bodyText)
         {
             return $@"
-            <html>
-                <body style='font-family: Arial, sans-serif; background-color: #f5f5f5; padding: 20px;'>
-                    <div style='background-color: white; max-width: 600px; margin: 0 auto; padding: 30px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);'>
-                        <h2 style='color: {themeColor}; text-align: center;'>{title}</h2>
-                        <hr style='border: none; border-top: 2px solid {themeColor};'>
-                        <p>Xin chào <strong>{name}</strong>,</p>
-                        <p>{bodyText}</p>
-                        <div style='text-align: center; padding: 20px;'>
-                            <h1 style='color: {themeColor}; letter-spacing: 5px; font-size: 32px; margin: 0;'>{otp}</h1>
-                        </div>
-                        <p style='text-align: center; color: #666;'><strong>⏰ Mã này có hiệu lực trong 15 phút</strong></p>
-                        <hr style='border: none; border-top: 1px solid #ddd;'>
-                        <p style='color: #999; font-size: 12px; text-align: center;'>
-                            Nếu bạn không thực hiện yêu cầu này, vui lòng bỏ qua email.
-                        </p>
+    <html>
+        <head>
+            <style>
+                .email-container {{ font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; border: 1px solid #e0e0e0; border-radius: 8px; overflow: hidden; }}
+                .email-header {{ background-color: #4CAF50; color: white; padding: 20px; text-align: center; }}
+                .email-body {{ padding: 24px; background-color: #ffffff; color: #333333; line-height: 1.6; }}
+                .welcome-text {{ font-size: 18px; margin-top: 0; }}
+                .main-desc {{ font-size: 15px; color: #555555; margin-bottom: 20px; }}
+                .otp-box {{ background-color: #f4fbf5; border: 2px dashed #4CAF50; border-radius: 6px; padding: 20px; text-align: center; margin: 24px 0; }}
+                .otp-title {{ font-size: 14px; color: #666666; text-transform: uppercase; letter-spacing: 1px; margin: 0 0 10px 0; }}
+                .otp-code {{ font-size: 36px; font-weight: bold; color: #4CAF50; letter-spacing: 6px; margin: 0; }}
+                .warning-text {{ font-size: 13px; color: #e53935; margin: 10px 0 0 0; font-weight: 500; }}
+                .divider {{ border: 0; border-top: 1px solid #eeeeee; margin: 24px 0; }}
+                .email-footer {{ background-color: #f9f9f9; padding: 20px; text-align: center; font-size: 12px; color: #888888; border-top: 1px solid #e0e0e0; }}
+                .footer-text {{ margin: 0 0 12px 0; line-height: 1.5; }}
+                .footer-links a {{ color: #4CAF50; text-decoration: none; margin: 0 8px; }}
+            </style>
+        </head>
+        <body>
+            <div class='email-container'>
+                <div class='email-header'>
+                    <h2>HỆ THỐNG SPORTSYNC</h2>
+                </div>
+                <div class='email-body'>
+                    <p class='welcome-text'>Xin chào <strong>{name}</strong>,</p>
+                    <p class='main-desc'>{bodyText}</p>
+                    
+                    <div class='otp-box'>
+                        <p class='otp-title'>Mã xác thực của bạn</p>
+                        <h1 class='otp-code'>{otp}</h1>
+                        <p class='warning-text'>⏱️ Mã này có hiệu lực trong vòng 15 phút</p>
                     </div>
-                </body>
-            </html>";
+                    
+                    <p class='main-desc' style='margin-bottom: 0;'>Vì lý do bảo mật, vui lòng tuyệt đối không chia sẻ mã này cho bất kỳ ai khác.</p>
+                    <hr class='divider' />
+                </div>
+                <div class='email-footer'>
+                    <p class='footer-text'>
+                        Đây là email tự động từ hệ thống quản lý sân bóng SportSync.<br>
+                        Nếu bạn không thực hiện yêu cầu này, bạn có thể an tâm bỏ qua email này.<br>
+                    </p>
+                    <div class='footer-links'>
+                        <a href='#'>Trang chủ</a> • 
+                        <a href='#'>Hỗ trợ kỹ thuật</a> • 
+                        <a href='#'>Điều khoản dịch vụ</a>
+                    </div>
+                </div>
+            </div>
+        </body>
+    </html>";
         }
     }
 }
