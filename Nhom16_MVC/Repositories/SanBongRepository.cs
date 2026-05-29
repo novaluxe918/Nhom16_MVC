@@ -13,47 +13,35 @@ namespace Nhom16_MVC.Repositories
             _context = context;
         }
 
-        public async Task<List<sanbong>> GetAllAsync()
+        public async Task<List<sanbong>> LayTatCa()
         {
             return await _context.sanbong
-                .Include(x => x.sanbongchitiet)
+                .OrderByDescending(x => x.createdat)
                 .ToListAsync();
         }
 
-        public async Task<List<sanbong>> GetByChuSanAsync(int chusan)
+        public async Task<sanbong?> LayTheoId(int id)
         {
             return await _context.sanbong
-                .Where(x => x.chusan == chusan)
-                .Include(x => x.sanbongchitiet)
-                .ToListAsync();
-        }
-
-        public async Task<sanbong?> GetByIdAsync(int id)
-        {
-            return await _context.sanbong
-                .Include(x => x.sanbongchitiet)
-                .Include(x => x.media_sanbong)
                 .FirstOrDefaultAsync(x => x.masanbong == id);
         }
 
-        public async Task AddAsync(sanbong san)
+        public async Task Tao(sanbong san)
         {
             await _context.sanbong.AddAsync(san);
         }
 
-        public Task UpdateAsync(sanbong san)
+        public void CapNhat(sanbong san)
         {
             _context.sanbong.Update(san);
-            return Task.CompletedTask;
         }
 
-        public Task DeleteAsync(sanbong san)
+        public void Xoa(sanbong san)
         {
             _context.sanbong.Remove(san);
-            return Task.CompletedTask;
         }
 
-        public async Task SaveChangesAsync()
+        public async Task Save()
         {
             await _context.SaveChangesAsync();
         }

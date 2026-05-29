@@ -105,6 +105,7 @@ builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<UserManagementService>();
 builder.Services.AddScoped<StadiumManagementService>();
 builder.Services.AddScoped<RatingManagementService>();
+builder.Services.AddScoped<FinancialManagementService>();
 
 var jwtSettings = builder.Configuration.GetSection("JwtSettings");
 var secretKey = jwtSettings["SecretKey"] ?? "Chon_Mot_Chuoi_Key_That_Dai_Va_Bao_Mat_Nhom16_SportSync_2026";
