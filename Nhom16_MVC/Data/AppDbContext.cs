@@ -90,11 +90,20 @@ public partial class AppDbContext : DbContext
             entity.HasIndex(e => e.trangthaidatsan, "ix_chitietdatsan_trangthai");
 
             entity.Property(e => e.covande).HasDefaultValue(false);
-
             entity.Property(e => e.trangthaidatsan)
                 .HasConversion(
-                    v => v.ToString().Replace("_", ""),
-                    v => Enum.Parse<TrangThaiDatEnum>(v))
+                    v =>
+                        v == TrangThaiDatEnum.ChoXacNhan ? "cho_xac_nhan" :
+                        v == TrangThaiDatEnum.DaXacNhan ? "da_xac_nhan" :
+                        v == TrangThaiDatEnum.DaHuy ? "da_huy" :
+                        "hoan_thanh",
+
+                    v =>
+                        v == "cho_xac_nhan" ? TrangThaiDatEnum.ChoXacNhan :
+                        v == "da_xac_nhan" ? TrangThaiDatEnum.DaXacNhan :
+                        v == "da_huy" ? TrangThaiDatEnum.DaHuy :
+                        TrangThaiDatEnum.HoanThanh
+                )
                 .HasDefaultValue(TrangThaiDatEnum.ChoXacNhan);
 
             entity.HasOne(d => d.madatsanNavigation).WithMany(p => p.chitietdatsan)
@@ -134,7 +143,7 @@ public partial class AppDbContext : DbContext
                 .HasForeignKey(d => d.nguoithue)
                 .HasConstraintName("danhgia_nguoithue_fkey");
 
-          
+
 
         });
 

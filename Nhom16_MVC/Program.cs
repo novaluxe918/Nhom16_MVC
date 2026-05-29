@@ -38,7 +38,7 @@ builder.Services.AddHttpContextAccessor();
 // Repository
 builder.Services.AddScoped<ISanBongRepository, SanBongRepository>();
 builder.Services.AddScoped<IBangGiaRepository, BangGiaRepository>();
-
+builder.Services.AddScoped<IReportService, RevenueReportService>();
 // Business Service
 builder.Services.AddScoped<ISanBongService, SanBongService>();
 builder.Services.AddScoped<IBangGiaService, BangGiaService>();

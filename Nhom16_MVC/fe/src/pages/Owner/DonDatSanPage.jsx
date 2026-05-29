@@ -18,7 +18,7 @@ const DonDatSanPage = () => {
         maSanChiTiet: ""
     });
 
-    const chuSanId = 1;
+    const chuSanId = 6;
 
     const fetchData = async () => {
         setLoading(true);
