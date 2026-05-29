@@ -69,21 +69,33 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
 
 builder.Services.AddAuthorization();
 
-var app = builder.Build();
+builder.Services.AddScoped<DatabaseService>();
+builder.Services.AddScoped<EmailHelper>();
+builder.Services.AddScoped<JwtHelper>();       
 
-builder.Services.AddScoped<ISanBongService, SanBongService>();
-builder.Services.AddScoped<IBangGiaRepository, BangGiaRepository>();
-builder.Services.AddScoped<IBangGiaService, BangGiaService>();
-builder.Services.AddCors(options =>
-{
-    options.AddPolicy("AllowReact",
-        policy =>
+// Đăng ký các tầng nghiệp vụ (Services) độc lập
+builder.Services.AddScoped<IAuthService, AuthService>();
+builder.Services.AddScoped<UserManagementService>();
+builder.Services.AddScoped<StadiumManagementService>();
+
+var jwtSettings = builder.Configuration.GetSection("JwtSettings");
+var secretKey = jwtSettings["SecretKey"] ?? "Chon_Mot_Chuoi_Key_That_Dai_Va_Bao_Mat_Nhom16_SportSync_2026";
+
+builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+    .AddJwtBearer(options =>
+    {
+        options.TokenValidationParameters = new TokenValidationParameters
         {
-            policy.AllowAnyOrigin()
-                  .AllowAnyHeader()
-                  .AllowAnyMethod();
-        });
-});
+            ValidateIssuerSigningKey = true,
+            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secretKey)),
+            ValidateIssuer = false,
+            ValidateAudience = false,
+            ClockSkew = TimeSpan.Zero // Triệt tiêu thời gian chênh lệch để hết hạn token chính xác hơn
+        };
+    });
+
+builder.Services.AddAuthorization();
+
 var app = builder.Build();
 
 if (app.Environment.IsDevelopment())
