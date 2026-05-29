@@ -1,4 +1,4 @@
-﻿using System;
+﻿﻿using System;
 using System.Collections.Generic;
 
 namespace Nhom16_MVC.Models.Entities;
@@ -31,15 +31,18 @@ public partial class sanbong
 
     public decimal? vido { get; set; }
 
+    public TimeOnly giomocua { get; set; } = new TimeOnly(6, 0);
+    public TimeOnly giodongcua { get; set; } = new TimeOnly(22, 0);
+
     public DateTime? createdat { get; set; }
 
     public DateTime? updatedat { get; set; }
 
-    public virtual nguoidung chusanNavigation { get; set; } = null!;
 
-    public virtual ICollection<danhgia> danhgia { get; set; } = new List<danhgia>();
+    public virtual nguoidung chusanNavigation { get; set; } = null!;
 
     public virtual ICollection<media_sanbong> media_sanbong { get; set; } = new List<media_sanbong>();
 
     public virtual ICollection<sanbongchitiet> sanbongchitiet { get; set; } = new List<sanbongchitiet>();
+    public virtual ICollection<danhgia> danhgia { get; set; } = new List<danhgia>();
 }

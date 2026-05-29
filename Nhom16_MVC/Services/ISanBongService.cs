@@ -1,14 +1,17 @@
 ﻿using Nhom16_MVC.Models.DTOs;
+using Nhom16_MVC.Models.Entities;
 
 namespace Nhom16_MVC.Services
 {
     public interface ISanBongService
     {
-        Task<List<SanBongDTO>> LayTatCa();
+      Task<List<sanbong>> LayTatCaSan();
 
-        Task<SanBongDTO?> LayTheoId(int id);
+        Task<List<sanbong>> LaySanTheoChuSan(int chusan);
 
-        Task<bool> TaoSan(TaoSanBongDTO dto);
+        Task<sanbong?> LaySanTheoId(int id);
+
+        Task<bool> TaoSan(TaoSanBongDTO dto, int chusan);
 
         Task<bool> CapNhatSan(int id, CapNhatSanBongDTO dto);
 
