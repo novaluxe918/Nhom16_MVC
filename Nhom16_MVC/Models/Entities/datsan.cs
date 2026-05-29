@@ -9,9 +9,10 @@ public partial class datsan
 
     public int nguoithue { get; set; }
 
-    public DateOnly ngaydat { get; set; }
+     public DateTime ngaydat { get; set; }
 
     public DateTime? ngaythanhtoan { get; set; }
+
 
     public long sotienthanhtoan { get; set; }
 

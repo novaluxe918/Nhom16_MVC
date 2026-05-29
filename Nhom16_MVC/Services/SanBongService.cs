@@ -11,9 +11,12 @@ namespace Nhom16_MVC.Services
     {
         private readonly ISanBongRepository _repository;
         private readonly AppDbContext _db;
-        public SanBongService(ISanBongRepository repository)
+        public SanBongService(
+    ISanBongRepository repository,
+    AppDbContext db)
         {
             _repository = repository;
+            _db = db;
         }
 
         public async Task<List<sanbong>> LayTatCaSan()
@@ -33,12 +36,27 @@ namespace Nhom16_MVC.Services
 
         public async Task<bool> TaoSan(TaoSanBongDTO dto, int chusan)
         {
+            string filePath = null;
+
+            if (dto.hinhanh != null)
+            {
+                var fileName = Guid.NewGuid() + Path.GetExtension(dto.hinhanh.FileName);
+                var savePath = Path.Combine("wwwroot/uploads", fileName);
+
+                using (var stream = new FileStream(savePath, FileMode.Create))
+                {
+                    await dto.hinhanh.CopyToAsync(stream);
+                }
+
+                filePath = "/uploads/" + fileName;
+            }
+
             var san = new sanbong
             {
                 chusan = chusan,
                 tensan = dto.tensan,
                 mota = dto.mota,
-                hinhanh = dto.hinhanh,
+                hinhanh = filePath, // ✅ FIX Ở ĐÂY
                 diachi = dto.diachi,
                 quan = dto.quan,
                 huyen = dto.huyen,
@@ -49,8 +67,8 @@ namespace Nhom16_MVC.Services
                 giomocua = dto.giomocua,
                 giodongcua = dto.giodongcua,
                 daduyet = false,
-                createdat = DateTime.UtcNow,
-                updatedat = DateTime.UtcNow
+                createdat = DateTime.Now,
+                updatedat = DateTime.Now
             };
 
             await _repository.AddAsync(san);
@@ -58,7 +76,6 @@ namespace Nhom16_MVC.Services
 
             return true;
         }
-
         public async Task<bool> CapNhatSan(int id, CapNhatSanBongDTO dto)
         {
             var san = await _repository.GetByIdAsync(id);
@@ -107,8 +124,8 @@ namespace Nhom16_MVC.Services
         {
             var sanBong = await _db.sanbong
                 .Include(s => s.media_sanbong)
-                .Include(s=>s.giomocua)
-                .Include(s=> s.giodongcua)
+                .Include(s => s.giomocua)
+                .Include(s => s.giodongcua)
                 .Include(s => s.sanbongchitiet)
                     .ThenInclude(sc => sc.maloaisanNavigation)
                 .Include(s => s.sanbongchitiet)
@@ -144,5 +161,5 @@ namespace Nhom16_MVC.Services
             };
         }
     }
-    }
+}
 

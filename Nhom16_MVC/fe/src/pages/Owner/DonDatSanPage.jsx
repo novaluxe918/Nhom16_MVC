@@ -1,39 +1,46 @@
 import { useEffect, useState } from "react";
-
 import { getLichDat } from "../../services/datSanApi";
 import Sidebar from "../../components/Owner/Sidebar";
 import DonDatSanFilter from "./DonDatSanFilter";
 import DonDatSanTable from "./DonDatSanTable";
 
+
+
 const DonDatSanPage = () => {
     const [data, setData] = useState([]);
     const [loading, setLoading] = useState(false);
 
+    // 🔥 FIX FILTER CHO KHỚP BACKEND
     const [filter, setFilter] = useState({
-        ngay: "",
+        tuNgay: "",
+        denNgay: "",
         trangThai: "",
-        sanConId: ""
+        maSanChiTiet: ""
     });
 
     const chuSanId = 1;
 
     const fetchData = async () => {
         setLoading(true);
+
         try {
             const res = await getLichDat(chuSanId, filter);
+
             console.log("DATA:", res.data);
 
             setData(res.data ?? []);
         } catch (err) {
             console.log("API ERROR:", err);
         }
+
         setLoading(false);
     };
 
+   
     useEffect(() => {
         const timer = setTimeout(() => {
             fetchData();
-        }, 300);
+        }, 400);
 
         return () => clearTimeout(timer);
     }, [filter]);
@@ -47,10 +54,15 @@ const DonDatSanPage = () => {
                     Quản lý đơn đặt sân
                 </h1>
 
-                <DonDatSanFilter filter={filter} setFilter={setFilter} />
+                {/* FILTER */}
+                <DonDatSanFilter
+                    filter={filter}
+                    setFilter={setFilter}
+                />
 
+                {/* TABLE */}
                 {loading ? (
-                    <p>Đang tải...</p>
+                    <p className="text-gray-500">Đang tải dữ liệu...</p>
                 ) : (
                     <DonDatSanTable data={data} />
                 )}

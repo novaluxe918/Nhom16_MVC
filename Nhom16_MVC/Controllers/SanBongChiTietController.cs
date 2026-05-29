@@ -6,7 +6,7 @@ using System.Security.Claims;
 namespace Nhom16_MVC.Controllers
 {
     [ApiController]
-    [Route("api/[controller]")]
+    [Route("api/sanbongchitiet")]
     public class SanBongChiTietController : ControllerBase
     {
         private readonly SanBongChiTietService _sanBongChiTietService;
@@ -14,14 +14,14 @@ namespace Nhom16_MVC.Controllers
 
         private readonly ISanBongChiTietService _service;
 
-        public SanBongChiTietController(SanBongChiTietService sanBongChiTietService, BookingService bookingService,ISanBongChiTietService service)
+        public SanBongChiTietController(SanBongChiTietService sanBongChiTietService, BookingService bookingService, ISanBongChiTietService service)
         {
             _sanBongChiTietService = sanBongChiTietService;
             _bookingService = bookingService;
             _service = service;
         }
-        
-         [HttpGet]
+
+        [HttpGet]
         public async Task<IActionResult> GetAll()
         {
             return Ok(await _service.GetAll());
@@ -34,7 +34,7 @@ namespace Nhom16_MVC.Controllers
         }
 
         [HttpPost]
-        public async Task<IActionResult> Create(CreateSanConDTO dto)
+        public async Task<IActionResult> Create([FromForm] CreateSanConDTO dto)
         {
             return Ok(await _service.Create(dto));
         }
@@ -119,7 +119,7 @@ namespace Nhom16_MVC.Controllers
 
             if (!result.Success)
             {
-                
+
                 if (result.Message.Contains("người khác đặt mất") || result.Message.Contains("Số dư"))
                 {
                     return BadRequest(result);

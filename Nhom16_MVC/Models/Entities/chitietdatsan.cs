@@ -22,6 +22,7 @@ public partial class chitietdatsan
 
     public TrangThaiDatEnum trangthaidatsan { get; set; } = TrangThaiDatEnum.ChoXacNhan;
 
+    // NAVIGATION
     public virtual datsan madatsanNavigation { get; set; } = null!;
 
     public virtual loaihinhdat? maloaidatNavigation { get; set; }

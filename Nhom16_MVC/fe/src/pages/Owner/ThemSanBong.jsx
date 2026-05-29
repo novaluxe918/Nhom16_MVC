@@ -86,11 +86,10 @@ const ThemSanBong = () => {
         e.preventDefault();
 
         try {
-
             setLoading(true);
 
             const data = new FormData();
-           data.append("chusan", 6);
+
             data.append("tensan", formData.tensan);
             data.append("mota", formData.mota);
             data.append("diachi", formData.diachi);
@@ -98,28 +97,25 @@ const ThemSanBong = () => {
             data.append("huyen", formData.huyen);
             data.append("xa", formData.xa);
             data.append("thanhpho", formData.thanhpho);
+            data.append("giomocua", formData.giomocua);
+            data.append("giodongcua", formData.giodongcua);
+
             if (formData.kinhdo)
                 data.append("kinhdo", formData.kinhdo);
 
             if (formData.vido)
                 data.append("vido", formData.vido);
-            data.append("giomocua", formData.giomocua);
-            data.append("giodongcua", formData.giodongcua);
 
-            if (formData.hinhanh) {
+            if (formData.hinhanh)
                 data.append("hinhanh", formData.hinhanh);
-            }
 
-            await axios.post(API, data, {
-                headers: {
-                    "Content-Type": "multipart/form-data",
-                },
-            });
+            
+            await axios.post(`${API}?chusan=6`, data);
 
             alert("Gửi xét duyệt sân bóng thành công");
 
-            // reset form
             setFormData({
+                chusan: 6,
                 tensan: "",
                 mota: "",
                 hinhanh: null,
@@ -137,17 +133,12 @@ const ThemSanBong = () => {
             setPreview("");
 
         } catch (error) {
-
             console.log(error);
-
             console.log(error.response?.data);
-
-
         } finally {
-
             setLoading(false);
-
         }
+
         console.log("CHUSAN =", formData.chusan);
     };
 

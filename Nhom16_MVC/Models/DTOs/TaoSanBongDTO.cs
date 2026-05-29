@@ -1,12 +1,13 @@
 ﻿namespace Nhom16_MVC.Models.DTOs
 {
     public class TaoSanBongDTO
-    {
+    {     
+        public int chusan { get; set; }
            public string tensan { get; set; } = string.Empty;
 
         public string? mota { get; set; }
 
-        public string? hinhanh { get; set; }
+        public IFormFile hinhanh { get; set; }
 
         public string? diachi { get; set; }
 

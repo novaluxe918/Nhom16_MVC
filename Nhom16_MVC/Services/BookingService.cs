@@ -75,7 +75,7 @@ namespace Nhom16_MVC.Services
                 var hoaDonTong = new datsan
                 {
                     nguoithue = manguoiThue,
-                    ngaydat = DateOnly.FromDateTime(DateTime.Now),
+                    ngaydat = DateTime.Now,
                     ngaythanhtoan = DateTime.Now,
                     sotienthanhtoan = tongTienLichDat
                 };

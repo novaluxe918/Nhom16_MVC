@@ -1,13 +1,18 @@
 import axios from "axios";
 
-const API = "http://localhost:5014/api/datsan";
+const API_URL = "http://localhost:5014/api/chu-san";
 
+/**
+ * Lấy lịch đặt sân theo chủ sân + filter
+ */
 export const getLichDat = async (chuSanId, filter) => {
-    const params = {
-        ngay: filter?.ngay,
-        trangThai: filter?.trangThai,
-        sanConId: filter?.sanConId,
-    };
-
-    return await axios.get(`${API}/chusan/${chuSanId}`, { params });
+    return await axios.get(`${API_URL}/lich-dat-san`, {
+        params: {
+            chuSanId: chuSanId,
+            tuNgay: filter.tuNgay || null,
+            denNgay: filter.denNgay || null,
+            trangThai: filter.trangThai || null,
+            maSanChiTiet: filter.maSanChiTiet || null
+        }
+    });
 };

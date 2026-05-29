@@ -5,15 +5,15 @@ using Nhom16_MVC.Services;
 namespace Nhom16_MVC.Controllers
 {
     [ApiController]
-    [Route("api/[controller]")]
+    [Route("api/sanbong")]
     public class SanBongController : ControllerBase
     {
 
         private readonly SearchService _searchService;
         private readonly AvailableFieldService _availableFieldService;
         private readonly SanBongService _sanBongService;
-        
-         private readonly ISanBongService _service;
+
+        private readonly ISanBongService _service;
 
         public SanBongController(SearchService searchService, AvailableFieldService availableFieldService, SanBongService sanBongService, ISanBongService service)
         {
@@ -95,7 +95,7 @@ namespace Nhom16_MVC.Controllers
             return Ok(new { Success = true, Data = result });
         }
 
-          [HttpGet]
+        [HttpGet]
         public async Task<IActionResult> LayTatCaSan()
         {
             var data = await _service.LayTatCaSan();
@@ -123,12 +123,12 @@ namespace Nhom16_MVC.Controllers
         }
 
         [HttpPost]
+        [Consumes("multipart/form-data")]
         public async Task<IActionResult> TaoSan(
-            [FromBody] TaoSanBongDTO dto,
-            [FromQuery] int chusan)
+    [FromForm] TaoSanBongDTO dto,
+    [FromQuery] int chusan)
         {
             var result = await _service.TaoSan(dto, chusan);
-
             return Ok(result);
         }
 
