@@ -2,28 +2,24 @@
 {
     public class CapNhatSanBongDTO
     {
-      public string tensan { get; set; } = string.Empty;
+        public string TenSan { get; set; } = string.Empty;
 
-        public string? mota { get; set; }
+        public string? MoTa { get; set; }
 
-        public string? hinhanh { get; set; }
+        public string? DiaChi { get; set; }
 
-        public string? diachi { get; set; }
+        public string? Quan { get; set; }
 
-        public string? quan { get; set; }
+        public string? Huyen { get; set; }
 
-        public string? huyen { get; set; }
+        public string? Xa { get; set; }
 
-        public string? xa { get; set; }
+        public string? ThanhPho { get; set; }
 
-        public string? thanhpho { get; set; }
+        public string? HinhAnh { get; set; }
 
-        public decimal? kinhdo { get; set; }
+        public decimal? KinhDo { get; set; }
 
-        public decimal? vido { get; set; }
-
-        public TimeOnly giomocua { get; set; }
-
-        public TimeOnly giodongcua { get; set; }
+        public decimal? ViDo { get; set; }
     }
 }
