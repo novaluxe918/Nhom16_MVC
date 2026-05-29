@@ -33,7 +33,6 @@ public partial class AppDbContext : DbContext
     public virtual DbSet<yeucauruttien> yeucauruttien { get; set; }
 
 
-
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.Entity<chat>(entity =>
@@ -95,12 +94,7 @@ public partial class AppDbContext : DbContext
         {
             entity.HasKey(e => e.madanhgia).HasName("danhgia_pkey");
             entity.HasIndex(e => e.nguoithue, "ix_danhgia_nguoithue");
-
-
-            entity.HasIndex(e => e.masanchitiet, "ix_danhgia_sanchitiet");
-
-            entity.HasIndex(e => e.madanhgia, "ix_danhgia_sanbong");
-
+            entity.HasIndex(e => e.masanbong, "ix_danhgia_sanbong");
 
             entity.Property(e => e.thoigiandanhgia)
                 .HasDefaultValueSql("now()")
@@ -321,8 +315,6 @@ public partial class AppDbContext : DbContext
             entity.HasOne(d => d.manguoidungNavigation).WithMany(p => p.yeucauruttien)
                 .HasForeignKey(d => d.manguoidung)
                 .HasConstraintName("yeucauruttien_manguoidung_fkey");
-
-
         });
 
         OnModelCreatingPartial(modelBuilder);

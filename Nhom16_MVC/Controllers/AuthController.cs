@@ -71,7 +71,17 @@ namespace Nhom16_MVC.Controllers
                 return Unauthorized(new { success = false, message = result.Message, error = result.ErrorDetail });
             }
 
-            return Ok(new { success = true, message = result.Message, userId = result.Data?.UserId, email = result.Data?.Email, hoTen = result.Data?.HoTen, vaiTro = result.Data?.VaiTro });
+            // 🌟 TRẢ THÊM TRƯỜNG TOKEN RA CHO POSTMAN/FRONTEND
+            return Ok(new
+            {
+                success = true,
+                message = result.Message,
+                userId = result.Data?.UserId,
+                email = result.Data?.Email,
+                hoTen = result.Data?.HoTen,
+                vaiTro = result.Data?.VaiTro,
+                token = result.Data?.Token // Đã xuất trường token ở đây
+            });
         }
 
         [HttpPost("forgot-password")]
