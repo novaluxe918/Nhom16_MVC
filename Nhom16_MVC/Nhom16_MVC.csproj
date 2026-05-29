@@ -27,6 +27,7 @@
 
 	<ItemGroup>
 		<Folder Include="Data\" />
+		<Folder Include="fe\src\pages\Admin\" />
 		<Folder Include="fe\src\pages\Owner\" />
 		<Folder Include="Helpers\" />
 		<Folder Include="Models\Enums\" />

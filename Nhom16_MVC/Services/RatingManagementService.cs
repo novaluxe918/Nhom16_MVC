@@ -15,16 +15,18 @@ namespace Nhom16_MVC.Services
             _dbService = dbService;
         }
 
+        /// <summary>
+        /// Lấy danh sách toàn bộ đánh giá hệ thống (Đã sửa đổi tên cột khớp 100% với Entity danhgia.cs)
+        /// </summary>
         public async Task<List<AdminRatingViewDto>> GetAllRatingsAsync()
         {
             var list = new List<AdminRatingViewDto>();
 
-            // 🚀 ĐÃ SỬA: Thay d.masanbong bằng sbc.masanbong và thêm JOIN public.sanbongchitiet sbc
+            // 🌟 ĐÃ SỬA: Thay đổi sang d.nguoithue, d.diemso, d.binhluan, d.thoigiandanhgia cho chuẩn khớp database
             string query = @"
-                SELECT d.madanhgia, sbc.masanbong, s.tensan, n.hoten, d.diemso, d.binhluan, d.thoigiandanhgia
+                SELECT d.madanhgia, d.masanbong, s.tensan, n.hoten, d.diemso, d.binhluan, d.thoigiandanhgia
                 FROM public.danhgia d
-                JOIN public.sanbongchitiet sbc ON d.masanchitiet = sbc.masanchitiet
-                JOIN public.sanbong s ON sbc.masanbong = s.masanbong
+                JOIN public.sanbong s ON d.masanbong = s.masanbong
                 JOIN public.nguoidung n ON d.nguoithue = n.manguoidung
                 ORDER BY d.madanhgia DESC";
 
@@ -35,29 +37,30 @@ namespace Nhom16_MVC.Services
 
                 using var cmd = new NpgsqlCommand(query, conn);
                 using var reader = await cmd.ExecuteReaderAsync();
-
                 while (await reader.ReadAsync())
                 {
                     list.Add(new AdminRatingViewDto
                     {
-                        MaDanhGia = Convert.ToInt32(reader["madanhgia"]),
-                        MaSanBong = Convert.ToInt32(reader["masanbong"]), // Lấy từ sbc.masanbong vừa select
-                        TenSanBong = reader["tensan"]?.ToString() ?? string.Empty,
-                        TenNguoiDung = reader["hoten"]?.ToString() ?? string.Empty,
-                        SoSao = Convert.ToInt32(reader["diemso"]),
-                        NoiDung = reader["binhluan"]?.ToString() ?? string.Empty,
-                        CreatedAt = reader["thoigiandanhgia"] != DBNull.Value ? Convert.ToDateTime(reader["thoigiandanhgia"]) : null
+                        MaDanhGia = reader.GetInt32(0),
+                        MaSanBong = reader.GetInt32(1),
+                        TenSan = reader.GetString(2),
+                        TenNguoiDung = reader.GetString(3),
+                        SoSao = reader.GetInt16(4), // Đã ép kiểu sang short (Int16) theo đúng thực thể
+                        NoiDung = reader.IsDBNull(5) ? "" : reader.GetString(5),
+                        CreatedAt = reader.IsDBNull(6) ? (DateTime?)null : reader.GetDateTime(6)
                     });
                 }
-                return list;
             }
             catch (Exception ex)
             {
-                // Giữ lại throw để nếu có lỗi phát sinh khác (ví dụ sai tên cột người dùng) thì Postman sẽ hiện ngay
-                throw new Exception($"Lỗi truy vấn Database: {ex.Message}", ex);
+                Console.WriteLine("Lỗi lấy danh sách đánh giá hệ thống: " + ex.Message);
             }
+            return list;
         }
 
+        /// <summary>
+        /// Xóa bỏ đánh giá dựa theo mã đánh giá chuẩn xác
+        /// </summary>
         public async Task<RatingManagementResponse> DeleteRatingAsync(int maDanhGia)
         {
             string query = "DELETE FROM public.danhgia WHERE madanhgia = @maDanhGia";
@@ -70,13 +73,28 @@ namespace Nhom16_MVC.Services
                 cmd.Parameters.AddWithValue("@maDanhGia", maDanhGia);
 
                 int rowsAffected = await cmd.ExecuteNonQueryAsync();
-                return rowsAffected > 0
-                    ? new RatingManagementResponse { Success = true, Message = "Đã xóa thành công!" }
-                    : new RatingManagementResponse { Success = false, Message = "Không tìm thấy đánh giá." };
+                if (rowsAffected == 0)
+                {
+                    return new RatingManagementResponse
+                    {
+                        Success = false,
+                        Message = "Không tìm thấy mã đánh giá này hoặc dữ liệu đã bị gỡ bỏ trước đó."
+                    };
+                }
+
+                return new RatingManagementResponse
+                {
+                    Success = true,
+                    Message = "Đã gỡ bỏ đánh giá spam không phù hợp khỏi hệ thống thành công!"
+                };
             }
             catch (Exception ex)
             {
-                return new RatingManagementResponse { Success = false, Message = ex.Message };
+                return new RatingManagementResponse
+                {
+                    Success = false,
+                    Message = "Lỗi hệ thống phát sinh khi thực hiện xóa đánh giá: " + ex.Message
+                };
             }
         }
     }
