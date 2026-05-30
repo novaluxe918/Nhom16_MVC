@@ -32,157 +32,132 @@ public partial class AppDbContext : DbContext
     public virtual DbSet<sanbongratingsummary> sanbongratingsummary { get; set; }
     public virtual DbSet<yeucauruttien> yeucauruttien { get; set; }
 
-    protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
-    {
-        // KHÔNG cấu hình gì ở đây vì đã dùng NpgsqlDataSource trong Program.cs
-        // Việc MapEnum<VaiTroEnum> đã được thực hiện trong Program.cs
-        if (!optionsBuilder.IsConfigured)
-        {
-            optionsBuilder.UseNpgsql("Name=ConnectionStrings:DefaultConnection");
-        }
-    }
-
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
-
         base.OnModelCreating(modelBuilder);
 
-      
+        // Map Enum chuẩn PostgreSQL
         modelBuilder.HasPostgresEnum<TrangThaiDatEnum>("trang_thai_dat");
         modelBuilder.HasPostgresEnum<VaiTroEnum>("vai_tro_enum");
-
-
-
 
         modelBuilder.Entity<chat>(entity =>
         {
             entity.HasKey(e => e.matinnhan).HasName("chat_pkey");
+            entity.HasIndex(e => e.nguoigui, "ix_chat_nguoigui");
+            entity.HasIndex(e => e.nguoinhan, "ix_chat_nguoinhan");
+            entity.HasIndex(e => e.daDoc, "ix_chat_dadoc");
 
-            entity.Property(e => e.matinnhan).HasColumnName("matinnhan");
-            entity.Property(e => e.nguoigui).HasColumnName("nguoigui");
-            entity.Property(e => e.nguoinhan).HasColumnName("nguoinhan");
-            entity.Property(e => e.noidung).HasColumnName("noidung").HasColumnType("character varying");
-            entity.Property(e => e.thoigiangui).HasColumnName("thoigiangui").HasColumnType("timestamp without time zone").HasDefaultValueSql("now()");
-            entity.Property(e => e.daDoc).HasColumnName("daDoc");
+            entity.Property(e => e.thoigiangui)
+                .HasDefaultValueSql("now()")
+                .HasColumnType("timestamp without time zone");
 
+            entity.Property(e => e.daDoc).HasDefaultValue(false);
+
+            // 👉 Đã kiểm chứng qua hình ảnh: Tên khóa ngoại chuẩn
             entity.HasOne(d => d.nguoiguiNavigation).WithMany(p => p.chatnguoiguiNavigation)
                 .HasForeignKey(d => d.nguoigui)
-                .HasConstraintName("chat_manguoirgui_fkey");
+                .HasConstraintName("chat_nguoigui_fkey");
 
             entity.HasOne(d => d.nguoinhanNavigation).WithMany(p => p.chatnguoinhanNavigation)
                 .HasForeignKey(d => d.nguoinhan)
-                .HasConstraintName("chat_manguoinhan_fkey");
+                .HasConstraintName("chat_nguoinhan_fkey");
         });
 
         modelBuilder.Entity<chitietdatsan>(entity =>
         {
-
-            entity.Property(e => e.giobatdau)
-                .HasColumnType("timestamp without time zone");
-            entity.Property(e => e.gioketthuc)
-                .HasColumnType("timestamp without time zone");
             entity.HasKey(e => e.machitietdatsan).HasName("chitietdatsan_pkey");
-
             entity.HasIndex(e => e.madatsan, "ix_chitietdatsan_datsan");
-
             entity.HasIndex(e => e.masanchitiet, "ix_chitietdatsan_sanchitiet");
-
             entity.HasIndex(e => e.trangthaidatsan, "ix_chitietdatsan_trangthai");
 
+            entity.Property(e => e.giobatdau).HasColumnType("timestamp without time zone");
+            entity.Property(e => e.gioketthuc).HasColumnType("timestamp without time zone");
             entity.Property(e => e.covande).HasDefaultValue(false);
 
             entity.Property(e => e.trangthaidatsan)
                 .HasConversion(
-                    
                     v => v == TrangThaiDatEnum.ChoXacNhan ? "cho_xac_nhan" :
                          v == TrangThaiDatEnum.DaXacNhan ? "da_xac_nhan" :
                          v == TrangThaiDatEnum.DaHuy ? "da_huy" : "hoan_thanh",
-
-                    
                     v => v == "cho_xac_nhan" ? TrangThaiDatEnum.ChoXacNhan :
                          v == "da_xac_nhan" ? TrangThaiDatEnum.DaXacNhan :
                          v == "da_huy" ? TrangThaiDatEnum.DaHuy : TrangThaiDatEnum.HoanThanh
                 )
                 .HasDefaultValue(TrangThaiDatEnum.ChoXacNhan);
 
+            // 👉 Đã kiểm chứng qua hình ảnh: Tên khóa ngoại chuẩn
             entity.HasOne(d => d.madatsanNavigation).WithMany(p => p.chitietdatsan)
                 .HasForeignKey(d => d.madatsan)
-                .OnDelete(DeleteBehavior.Cascade)
                 .HasConstraintName("chitietdatsan_madatsan_fkey");
 
             entity.HasOne(d => d.maloaidatNavigation).WithMany(p => p.chitietdatsan)
                 .HasForeignKey(d => d.maloaidat)
+                .OnDelete(DeleteBehavior.SetNull)
                 .HasConstraintName("chitietdatsan_maloaidat_fkey");
 
             entity.HasOne(d => d.masanchitietNavigation).WithMany(p => p.chitietdatsan)
                 .HasForeignKey(d => d.masanchitiet)
-                .HasConstraintName("chitietdatsan_masanbongchitiet_fkey");
+                .OnDelete(DeleteBehavior.Restrict)
+                .HasConstraintName("chitietdatsan_masanchitiet_fkey");
         });
 
         modelBuilder.Entity<danhgia>(entity =>
         {
             entity.HasKey(e => e.madanhgia).HasName("danhgia_pkey");
+            entity.HasIndex(e => e.nguoithue, "ix_danhgia_nguoithue");
+            entity.HasIndex(e => e.masanchitiet, "ix_danhgia_sanchitiet");
 
-            entity.Property(e => e.madanhgia).HasColumnName("madanhgia");
-            // SỬA TÊN CỘT: chuyển từ masanbong thành masanchitiet cho khớp với thực tế database/entity
-            entity.Property(e => e.masanchitiet).HasColumnName("masanchitiet");
-            entity.Property(e => e.nguoithue).HasColumnName("nguoithue");
-            entity.Property(e => e.diemso).HasColumnName("diemso");
-            entity.Property(e => e.binhluan).HasColumnName("binhluan").HasColumnType("character varying");
-            entity.Property(e => e.thoigiandanhgia).HasColumnName("thoigiandanhgia").HasColumnType("timestamp without time zone").HasDefaultValueSql("now()");
+            entity.Property(e => e.thoigiandanhgia)
+                .HasDefaultValueSql("now()")
+                .HasColumnType("timestamp without time zone");
 
-            // SỬA MỐI QUAN HỆ: Trỏ tới masanchitietNavigation thay vì masanbongNavigation
+            // 🌟 Đã gộp bản vá từ Phiên bản 2: Ép tên constraint về danhgia_masanbong_fkey
             entity.HasOne(d => d.masanchitietNavigation).WithMany(p => p.danhgia)
                 .HasForeignKey(d => d.masanchitiet)
                 .OnDelete(DeleteBehavior.Cascade)
-                .HasConstraintName("danhgia_masanbong_fkey"); // Giữ nguyên tên FK dưới DB của bạn
+                .HasConstraintName("danhgia_masanbong_fkey");
 
             entity.HasOne(d => d.nguoithueNavigation).WithMany(p => p.danhgia)
                 .HasForeignKey(d => d.nguoithue)
-                .OnDelete(DeleteBehavior.Cascade)
-                .HasConstraintName("danhgia_manguoidung_fkey");
+                .HasConstraintName("danhgia_nguoithue_fkey");
         });
 
         modelBuilder.Entity<datsan>(entity =>
         {
             entity.HasKey(e => e.madatsan).HasName("datsan_pkey");
+            entity.HasIndex(e => e.ngaydat, "ix_datsan_ngaydat");
+            entity.HasIndex(e => e.nguoithue, "ix_datsan_nguoithue");
 
-            entity.Property(e => e.madatsan).HasColumnName("madatsan");
-            entity.Property(e => e.nguoithue).HasColumnName("nguoithue");
-            entity.Property(e => e.ngaydat).HasColumnName("ngaydat");
-            entity.Property(e => e.ngaythanhtoan).HasColumnName("ngaythanhtoan");
-            entity.Property(e => e.sotienthanhtoan).HasColumnName("sotienthanhtoan");
+            entity.Property(e => e.ngaydat).HasDefaultValueSql("CURRENT_DATE");
+            entity.Property(e => e.ngaythanhtoan).HasColumnType("timestamp without time zone");
 
+            // Bảo vệ Lịch sử hóa đơn
             entity.HasOne(d => d.nguoithueNavigation).WithMany(p => p.datsan)
                 .HasForeignKey(d => d.nguoithue)
-                .OnDelete(DeleteBehavior.Cascade)
-                .HasConstraintName("datsan_manguoidung_fkey");
+                .OnDelete(DeleteBehavior.Restrict)
+                .HasConstraintName("datsan_nguoithue_fkey");
         });
 
         modelBuilder.Entity<loaihinhdat>(entity =>
         {
             entity.HasKey(e => e.maloaidat).HasName("loaihinhdat_pkey");
-            entity.Property(e => e.maloaidat).HasColumnName("maloaidat");
-            entity.Property(e => e.tenloaidat).HasColumnName("tenloaidat").HasMaxLength(100);
+            entity.Property(e => e.tenloaidat).HasMaxLength(100);
         });
 
         modelBuilder.Entity<loaisan>(entity =>
         {
             entity.HasKey(e => e.maloaisan).HasName("loaisan_pkey");
-            entity.Property(e => e.maloaisan).HasColumnName("maloaisan");
-            entity.Property(e => e.tenloaisan).HasColumnName("tenloaisan").HasMaxLength(50);
+            entity.Property(e => e.tenloaisan).HasMaxLength(100);
         });
 
         modelBuilder.Entity<media_sanbong>(entity =>
         {
             entity.HasKey(e => e.mamedia).HasName("media_sanbong_pkey");
+            entity.HasIndex(e => e.masanbong, "ix_mediasanbong_sanbong");
 
-            entity.Property(e => e.mamedia).HasColumnName("mamedia");
-            entity.Property(e => e.masanbong).HasColumnName("masanbong");
-            entity.Property(e => e.loaimedia).HasColumnName("loaimedia").HasMaxLength(50);
-            entity.Property(e => e.ten).HasColumnName("ten").HasMaxLength(255);
-            entity.Property(e => e.link).HasColumnName("link");
-            entity.Property(e => e.mediaid).HasColumnName("mediaid").HasMaxLength(100);
+            entity.Property(e => e.loaimedia).HasMaxLength(20);
+            entity.Property(e => e.mediaid).HasMaxLength(255);
+            entity.Property(e => e.ten).HasMaxLength(255);
 
             entity.HasOne(d => d.masanbongNavigation).WithMany(p => p.media_sanbong)
                 .HasForeignKey(d => d.masanbong)
@@ -192,13 +167,11 @@ public partial class AppDbContext : DbContext
         modelBuilder.Entity<media_sanbongchitiet>(entity =>
         {
             entity.HasKey(e => e.mamedia).HasName("media_sanbongchitiet_pkey");
+            entity.HasIndex(e => e.masanbongchitiet, "ix_mediachitiet_sanchitiet");
 
-            entity.Property(e => e.mamedia).HasColumnName("mamedia");
-            entity.Property(e => e.masanbongchitiet).HasColumnName("masanbongchitiet");
-            entity.Property(e => e.loaimedia).HasColumnName("loaimedia").HasMaxLength(50);
-            entity.Property(e => e.ten).HasColumnName("ten").HasMaxLength(255);
-            entity.Property(e => e.link).HasColumnName("link");
-            entity.Property(e => e.mediaid).HasColumnName("mediaid").HasMaxLength(100);
+            entity.Property(e => e.loaimedia).HasMaxLength(20);
+            entity.Property(e => e.mediaid).HasMaxLength(255);
+            entity.Property(e => e.ten).HasMaxLength(255);
 
             entity.HasOne(d => d.masanbongchitietNavigation).WithMany(p => p.media_sanbongchitiet)
                 .HasForeignKey(d => d.masanbongchitiet)
@@ -208,15 +181,11 @@ public partial class AppDbContext : DbContext
         modelBuilder.Entity<naptien>(entity =>
         {
             entity.HasKey(e => e.manaptien).HasName("naptien_pkey");
-
             entity.HasIndex(e => e.nguoinap, "ix_naptien_nguoinap");
-
             entity.HasIndex(e => e.trangthai, "ix_naptien_trangthai");
-
             entity.HasIndex(e => e.magiaodich, "naptien_magiaodich_key").IsUnique();
 
             entity.Property(e => e.magiaodich).HasMaxLength(100);
-
 
             entity.Property(e => e.phuongthuc)
                 .HasConversion(
@@ -230,11 +199,8 @@ public partial class AppDbContext : DbContext
 
             entity.Property(e => e.trangthai)
                 .HasConversion(
-                    // Lệnh ghi xuống DB
                     v => v == TrangThaiNapEnum.ChoXuLy ? "cho_xu_ly" :
                          v == TrangThaiNapEnum.ThanhCong ? "thanh_cong" : "that_bai",
-
-                    // Lệnh đọc từ DB lên C#
                     v => v == "cho_xu_ly" ? TrangThaiNapEnum.ChoXuLy :
                          v == "thanh_cong" ? TrangThaiNapEnum.ThanhCong : TrangThaiNapEnum.ThatBai
                 )
@@ -242,35 +208,33 @@ public partial class AppDbContext : DbContext
 
             entity.HasOne(d => d.nguoinapNavigation).WithMany(p => p.naptien)
                 .HasForeignKey(d => d.nguoinap)
-                .HasConstraintName("naptien_manguoidung_fkey");
+                .HasConstraintName("naptien_nguoinap_fkey");
         });
 
         modelBuilder.Entity<nguoidung>(entity =>
         {
-            entity.Property(e => e.resetTokenExpiry).HasColumnName("resettokenexpiry");
-            entity.Property(e => e.resetToken).HasColumnName("resettoken");
             entity.HasKey(e => e.manguoidung).HasName("nguoidung_pkey");
-
             entity.HasIndex(e => e.email, "ix_nguoidung_email");
-
             entity.HasIndex(e => e.vaitro, "ix_nguoidung_vaitro");
-            //Thay đổi vai trò
-            entity.Property(e => e.vaitro)
-                .HasConversion(
-                    
-                    v => v == VaiTroEnum.NguoiThue ? "nguoiThue" :
-                         v == VaiTroEnum.ChuSan ? "chuSan" : "admin",
-
-                   
-                    v => v == "nguoiThue" ? VaiTroEnum.NguoiThue :
-                         v == "chuSan" ? VaiTroEnum.ChuSan : VaiTroEnum.Admin
-                )
-
-                .Metadata.SetAfterSaveBehavior(Microsoft.EntityFrameworkCore.Metadata.PropertySaveBehavior.Ignore);
-
             entity.HasIndex(e => e.email, "nguoidung_email_key").IsUnique();
-
             entity.HasIndex(e => e.sodienthoai, "nguoidung_sodienthoai_key").IsUnique();
+
+            //entity.Property(e => e.vaitro)
+            //    .HasConversion(
+            //        // Gọi chuẩn xác tên biến viết thường (nguoiThue, chuSan, admin) từ VaiTroEnum.cs
+            //        v => v == VaiTroEnum.nguoiThue ? "nguoiThue" :
+            //             v == VaiTroEnum.chuSan ? "chuSan" : "admin",
+
+            //        v => v == "nguoiThue" ? VaiTroEnum.nguoiThue :
+            //             v == "chuSan" ? VaiTroEnum.chuSan : VaiTroEnum.admin
+            //    )
+            //    .Metadata.SetAfterSaveBehavior(Microsoft.EntityFrameworkCore.Metadata.PropertySaveBehavior.Ignore);
+
+            // Ép C# dịch Enum thành Chuỗi (string), và báo cho Postgres biết đây là kiểu vai_tro_enum
+            entity.Property(e => e.vaitro)
+                .HasColumnType("vai_tro_enum")
+                .Metadata.SetAfterSaveBehavior(
+                    Microsoft.EntityFrameworkCore.Metadata.PropertySaveBehavior.Ignore);
 
             entity.Property(e => e.createdat)
                 .HasDefaultValueSql("now()")
@@ -281,44 +245,65 @@ public partial class AppDbContext : DbContext
             entity.Property(e => e.sodienthoai).HasMaxLength(15);
             entity.Property(e => e.sodutaikhoan).HasDefaultValue(0L);
             entity.Property(e => e.tokenexpiry).HasColumnType("timestamp without time zone");
-
-           
         });
 
         modelBuilder.Entity<sanbong>(entity =>
         {
             entity.HasKey(e => e.masanbong).HasName("sanbong_pkey");
+            entity.HasIndex(e => e.chusan, "ix_sanbong_chusan");
+            entity.HasIndex(e => e.daduyet, "ix_sanbong_daduyet");
 
-            entity.Property(e => e.masanbong).HasColumnName("masanbong");
-            entity.Property(e => e.tensan).HasColumnName("tensan").HasMaxLength(150);
-            entity.Property(e => e.diachi).HasColumnName("diachi").HasMaxLength(255);
-            entity.Property(e => e.chusan).HasColumnName("chusan");
-            entity.Property(e => e.createdat).HasColumnName("createdat").HasColumnType("timestamp without time zone").HasDefaultValueSql("now()");
+            entity.Property(e => e.createdat)
+                .HasDefaultValueSql("now()")
+                .HasColumnType("timestamp without time zone");
+            entity.Property(e => e.daduyet).HasDefaultValue(false);
+            entity.Property(e => e.huyen).HasMaxLength(100);
+            entity.Property(e => e.kinhdo).HasPrecision(11, 8);
+            entity.Property(e => e.quan).HasMaxLength(100);
+            entity.Property(e => e.tensan).HasMaxLength(255);
+            entity.Property(e => e.thanhpho)
+                .HasMaxLength(100)
+                .HasDefaultValueSql("'Đà Nẵng'::character varying");
+            entity.Property(e => e.vido).HasPrecision(10, 8);
+            entity.Property(e => e.xa).HasMaxLength(100);
+
+            entity.Property(e => e.updatedat)
+                .HasColumnName("updatedat")
+                .HasColumnType("timestamp without time zone");
+
+            entity.Property(e => e.giomocua)
+                .HasColumnName("giomocua")
+                .HasColumnType("time without time zone")
+                .HasDefaultValueSql("'06:00'");
+
+            entity.Property(e => e.giodongcua)
+                .HasColumnName("giodongcua")
+                .HasColumnType("time without time zone")
+                .HasDefaultValueSql("'22:00'");
 
             entity.HasOne(d => d.chusanNavigation).WithMany(p => p.sanbong)
                 .HasForeignKey(d => d.chusan)
-                .OnDelete(DeleteBehavior.Cascade)
-                .HasConstraintName("sanbong_machusan_fkey");
+                .OnDelete(DeleteBehavior.Restrict)
+                .HasConstraintName("sanbong_chusan_fkey");
         });
 
         modelBuilder.Entity<sanbongchitiet>(entity =>
         {
             entity.HasKey(e => e.masanchitiet).HasName("sanbongchitiet_pkey");
+            entity.HasIndex(e => e.maloaisan, "ix_sanchitiet_loaisan");
+            entity.HasIndex(e => e.masanbong, "ix_sanchitiet_sanbong");
 
-            entity.Property(e => e.masanchitiet).HasColumnName("masanchitiet");
-            entity.Property(e => e.masanbong).HasColumnName("masanbong");
-            entity.Property(e => e.maloaisan).HasColumnName("maloaisan");
-            entity.Property(e => e.tensanchitiet).HasColumnName("tensanchitiet").HasMaxLength(100);
-            entity.Property(e => e.giathuebuoisang).HasColumnName("giathuebuoisang");
-            entity.Property(e => e.giathuebuoitoi).HasColumnName("giathuebuoitoi");
+            entity.Property(e => e.giathuebuoisang).HasDefaultValue(0L);
+            entity.Property(e => e.giathuebuoitoi).HasDefaultValue(0L);
+            entity.Property(e => e.tensanchitiet).HasMaxLength(255);
 
             entity.HasOne(d => d.maloaisanNavigation).WithMany(p => p.sanbongchitiet)
                 .HasForeignKey(d => d.maloaisan)
+                .OnDelete(DeleteBehavior.Restrict)
                 .HasConstraintName("sanbongchitiet_maloaisan_fkey");
 
             entity.HasOne(d => d.masanbongNavigation).WithMany(p => p.sanbongchitiet)
                 .HasForeignKey(d => d.masanbong)
-                .OnDelete(DeleteBehavior.Cascade)
                 .HasConstraintName("sanbongchitiet_masanbong_fkey");
         });
 
@@ -330,11 +315,8 @@ public partial class AppDbContext : DbContext
         modelBuilder.Entity<yeucauruttien>(entity =>
         {
             entity.HasKey(e => e.mayeucau).HasName("yeucauruttien_pkey");
-
             entity.HasIndex(e => e.manguoidung, "ix_ruttien_nguoidung");
-
             entity.HasIndex(e => e.trangthai, "ix_ruttien_trangthai");
-
             entity.HasIndex(e => e.magiaodich, "yeucauruttien_magiaodich_key").IsUnique();
 
             entity.Property(e => e.magiaodich).HasMaxLength(100);
@@ -346,11 +328,8 @@ public partial class AppDbContext : DbContext
 
             entity.Property(e => e.trangthai)
                 .HasConversion(
-                    // Lệnh ghi xuống DB
                     v => v == TrangThaiRutEnum.ChoXuLy ? "cho_xu_ly" :
                          v == TrangThaiRutEnum.DaChuyen ? "da_chuyen" : "that_bai",
-
-                    // Lệnh đọc từ DB lên C#
                     v => v == "cho_xu_ly" ? TrangThaiRutEnum.ChoXuLy :
                          v == "da_chuyen" ? TrangThaiRutEnum.DaChuyen : TrangThaiRutEnum.ThatBai
                 )

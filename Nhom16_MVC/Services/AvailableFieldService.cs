@@ -19,7 +19,7 @@ public class AvailableFieldService
 
 
     /// Tìm kiếm sân trống theo khung giờ
- 
+
     public async Task<SearchAvailableFieldsResponse> SearchAvailableFieldsAsync(SearchAvailableFieldsRequest request)
     {
         var response = new SearchAvailableFieldsResponse();
@@ -52,18 +52,17 @@ public class AvailableFieldService
             // Lấy tất cả sân bóng với thông tin đánh giá
 
             //  TẠO KHUNG LEGO CƠ BẢN: Lấy các sân đã duyệt
+
             var query = _context.sanbong
                 .Include(s => s.sanbongchitiet)
                     .ThenInclude(sc => sc.maloaisanNavigation)
-                .Include(s => s.danhgia)
-
                 .Include(s => s.sanbongchitiet)
                     .ThenInclude(sc => sc.danhgia)
-
+                .Include(s => s.media_sanbong)
                 .Where(s => s.daduyet == true)
-                .AsQueryable(); 
+                .AsQueryable();
 
-            // LẮP RÁP CÁC ĐIỀU KIỆN LỌC 
+
 
             // - Nếu người dùng có chọn lọc theo Tên Sân 
             if (!string.IsNullOrWhiteSpace(request.TenSan))
@@ -81,11 +80,11 @@ public class AvailableFieldService
             // - Nếu người dùng có chọn Loại Sân
             if (request.MaLoaiSan.HasValue && request.MaLoaiSan.Value > 0)
             {
-                
+
                 query = query.Where(s => s.sanbongchitiet.Any(sc => sc.maloaisan == request.MaLoaiSan.Value));
             }
 
-            
+
             var sanbongs = await query.ToListAsync();
 
 
@@ -99,7 +98,7 @@ public class AvailableFieldService
             }
 
             //Với mỗi sân chính, tìm các sân con có slot trống
- 
+
             foreach (var sanbong in sanbongs)
             {
                 foreach (var sanChiTiet in sanbong.sanbongchitiet)
@@ -115,8 +114,8 @@ public class AvailableFieldService
                         : 0;
 
                     // Lấy tất cả booking của sân con trong ngày này
-                    var batDauNgay = ngay.ToDateTime(TimeOnly.MinValue);   
-                    var ketThucNgay = batDauNgay.AddDays(1);               
+                    var batDauNgay = ngay.ToDateTime(TimeOnly.MinValue);
+                    var ketThucNgay = batDauNgay.AddDays(1);
 
                     var bookingsInDay = await _context.chitietdatsan
                         .Where(c => c.masanchitiet == sanChiTiet.masanchitiet &&
@@ -129,7 +128,7 @@ public class AvailableFieldService
                     var emptySlots = new List<AvailableSlotDto>();
                     foreach (var slot in slots)
                     {
-                        if (IsSlotAvailable(slot, bookingsInDay,ngay))
+                        if (IsSlotAvailable(slot, bookingsInDay, ngay))
                         {
                             emptySlots.Add(slot);
                         }
@@ -153,7 +152,8 @@ public class AvailableFieldService
                             // Thông tin sân mẹ (gắn kèm)
                             MaSanBong = sanbong.masanbong,
                             TenSan = sanbong.tensan,
-                            HinhAnh = sanbong.hinhanh,
+
+                            HinhAnh = sanbong.media_sanbong.FirstOrDefault(m => m.loaimedia == "hinh_anh")?.mediaid,
                             DiaChi = sanbong.diachi,
                             Quan = sanbong.quan,
                             Huyen = sanbong.huyen,
@@ -171,8 +171,8 @@ public class AvailableFieldService
 
             response.Success = true;
             response.TotalCount = response.Data.Count;
-            response.Message = response.Data.Count > 0 
-                ? $"Tìm thấy {response.Data.Count} sân con có slot trống" 
+            response.Message = response.Data.Count > 0
+                ? $"Tìm thấy {response.Data.Count} sân con có slot trống"
                 : "Không tìm thấy sân nào có slot trống trong khung giờ này";
 
             return response;
@@ -188,54 +188,54 @@ public class AvailableFieldService
     private ValidationResult ValidateInput(SearchAvailableFieldsRequest request)
     {
         // Kiểm tra input không null
-        if (string.IsNullOrWhiteSpace(request.Ngay) || 
-            string.IsNullOrWhiteSpace(request.GioTu) || 
+        if (string.IsNullOrWhiteSpace(request.Ngay) ||
+            string.IsNullOrWhiteSpace(request.GioTu) ||
             string.IsNullOrWhiteSpace(request.GioDen))
         {
-            return new ValidationResult 
-            { 
-                IsValid = false, 
-                ErrorMessage = "Vui lòng nhập đầy đủ thông tin (ngày, giờ từ, giờ đến)" 
+            return new ValidationResult
+            {
+                IsValid = false,
+                ErrorMessage = "Vui lòng nhập đầy đủ thông tin (ngày, giờ từ, giờ đến)"
             };
         }
 
         // Parse ngày
         if (!DateOnly.TryParseExact(request.Ngay, "yyyy-MM-dd", out var ngay))
         {
-            return new ValidationResult 
-            { 
-                IsValid = false, 
-                ErrorMessage = "Định dạng ngày không hợp lệ (sử dụng yyyy-MM-dd)" 
+            return new ValidationResult
+            {
+                IsValid = false,
+                ErrorMessage = "Định dạng ngày không hợp lệ (sử dụng yyyy-MM-dd)"
             };
         }
 
         // Parse giờ từ
         if (!TimeOnly.TryParseExact(request.GioTu, "HH:mm", out var gioTu))
         {
-            return new ValidationResult 
-            { 
-                IsValid = false, 
-                ErrorMessage = "Định dạng giờ từ không hợp lệ (sử dụng HH:mm)" 
+            return new ValidationResult
+            {
+                IsValid = false,
+                ErrorMessage = "Định dạng giờ từ không hợp lệ (sử dụng HH:mm)"
             };
         }
 
         // Parse giờ đến
         if (!TimeOnly.TryParseExact(request.GioDen, "HH:mm", out var gioDen))
         {
-            return new ValidationResult 
-            { 
-                IsValid = false, 
-                ErrorMessage = "Định dạng giờ đến không hợp lệ (sử dụng HH:mm)" 
+            return new ValidationResult
+            {
+                IsValid = false,
+                ErrorMessage = "Định dạng giờ đến không hợp lệ (sử dụng HH:mm)"
             };
         }
 
         // Kiểm tra giờ đến phải sau giờ từ
         if (gioDen <= gioTu)
         {
-            return new ValidationResult 
-            { 
-                IsValid = false, 
-                ErrorMessage = "Giờ đến phải sau giờ từ" 
+            return new ValidationResult
+            {
+                IsValid = false,
+                ErrorMessage = "Giờ đến phải sau giờ từ"
             };
         }
 
@@ -243,10 +243,10 @@ public class AvailableFieldService
         var duration = gioDen - gioTu;
         if (duration.TotalMinutes < 60)
         {
-            return new ValidationResult 
-            { 
-                IsValid = false, 
-                ErrorMessage = "Khung giờ tối thiểu 1 tiếng (60 phút)" 
+            return new ValidationResult
+            {
+                IsValid = false,
+                ErrorMessage = "Khung giờ tối thiểu 1 tiếng (60 phút)"
             };
         }
 
@@ -257,10 +257,10 @@ public class AvailableFieldService
             var now = TimeOnly.FromDateTime(DateTime.Now);
             if (gioTu <= now)
             {
-                return new ValidationResult 
-                { 
-                    IsValid = false, 
-                    ErrorMessage = "Không thể chọn giờ quá khứ cho ngày hôm nay" 
+                return new ValidationResult
+                {
+                    IsValid = false,
+                    ErrorMessage = "Không thể chọn giờ quá khứ cho ngày hôm nay"
                 };
             }
         }
@@ -268,10 +268,10 @@ public class AvailableFieldService
         // Kiểm tra không chọn ngày quá khứ
         if (ngay < today)
         {
-            return new ValidationResult 
-            { 
-                IsValid = false, 
-                ErrorMessage = "Không thể chọn ngày trong quá khứ" 
+            return new ValidationResult
+            {
+                IsValid = false,
+                ErrorMessage = "Không thể chọn ngày trong quá khứ"
             };
         }
 
@@ -299,7 +299,7 @@ public class AvailableFieldService
         return slots;
     }
 
-    
+
     private bool IsSlotAvailable(AvailableSlotDto slot, List<chitietdatsan> bookings, DateOnly ngay)
     {
         // Ghép ngày + giờ thành DateTime đầy đủ

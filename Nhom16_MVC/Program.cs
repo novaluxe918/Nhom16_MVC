@@ -10,56 +10,49 @@ using Npgsql.NameTranslation;
 using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
-builder.Services.AddDbContext<AppDbContext>(options =>
-    options.UseNpgsql(
-        builder.Configuration.GetConnectionString("DefaultConnection")));
 
+// =========================
+// Database & Enum Mapping
+// =========================
+var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
+var dataSourceBuilder = new NpgsqlDataSourceBuilder(connectionString);
+dataSourceBuilder.MapEnum<VaiTroEnum>("vai_tro_enum", nameTranslator: new NpgsqlNullNameTranslator());
+var dataSource = dataSourceBuilder.Build();
 
-
-builder.Services.AddCors(options =>
-{
-    options.AddPolicy("AllowReactApp", policy =>
-    {
-        policy.WithOrigins("http://localhost:5173", "http://localhost:5174") // Các port Frontend của bạn
-              .AllowAnyHeader()
-              .AllowAnyMethod()
-              .AllowCredentials();
-    });
-});
-
-
+builder.Services.AddDbContext<AppDbContext>(options => options.UseNpgsql(dataSource));
 
 // =========================
 // Add services
 // =========================
-
-builder.Services.AddControllers();
-
-var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
-var dataSourceBuilder = new NpgsqlDataSourceBuilder(connectionString);
-
-// Program.cs - sửa dòng MapEnum
-dataSourceBuilder.MapEnum<VaiTroEnum>("vai_tro_enum", nameTranslator: new NpgsqlNullNameTranslator());
-var dataSource = dataSourceBuilder.Build();
-
-// Đăng ký DbContext sử dụng dataSource đã map Enum
-builder.Services.AddDbContext<AppDbContext>(options => options.UseNpgsql(dataSource));
-
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
+builder.Services.AddHttpContextAccessor();
 
-builder.Services.AddScoped<DatabaseService>();
+// --- Helpers ---
 builder.Services.AddScoped<EmailHelper>();
 builder.Services.AddScoped<JwtHelper>();
 
-// Đăng ký các tầng nghiệp vụ (Services) độc lập
+// --- Core / Shared Services (từ phiên bản 1) ---
+builder.Services.AddSingleton<DatabaseService>();
+builder.Services.AddScoped<SearchService>();
+builder.Services.AddScoped<AvailableFieldService>();
+builder.Services.AddScoped<SanBongService>();
+builder.Services.AddScoped<SanBongChiTietService>();
+builder.Services.AddScoped<BookingService>();
+builder.Services.AddScoped<GiaoDichService>();
+builder.Services.AddScoped<DanhGiaService>();
+
+// --- Auth & Management Services (từ phiên bản 2) ---
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<UserManagementService>();
 builder.Services.AddScoped<StadiumManagementService>();
 builder.Services.AddScoped<RatingManagementService>();
 builder.Services.AddScoped<FinancialManagementService>();
 
+// =========================
+// JWT Authentication
+// =========================
 var jwtSettings = builder.Configuration.GetSection("JwtSettings");
 var secretKey = jwtSettings["SecretKey"] ?? "Chon_Mot_Chuoi_Key_That_Dai_Va_Bao_Mat_Nhom16_SportSync_2026";
 
@@ -78,14 +71,16 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
 
 builder.Services.AddAuthorization();
 
-// Đăng ký chính sách CORS dịch vụ
+// =========================
+// CORS (1 lần duy nhất, hỗ trợ cả 2 port)
+// =========================
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowReactApp", policy =>
     {
-        policy.WithOrigins("http://localhost:5173")
-              .AllowAnyMethod()
+        policy.WithOrigins("http://localhost:5173", "http://localhost:5174")
               .AllowAnyHeader()
+              .AllowAnyMethod()
               .AllowCredentials();
     });
 });
@@ -93,28 +88,33 @@ builder.Services.AddCors(options =>
 var app = builder.Build();
 
 // =========================================================================
-// ⚡ THỨ TỰ MIDDLEWARE CHUẨN ĐÃ ĐƯỢC TỐI ƯU ⚡
+// Middleware Pipeline (thứ tự chuẩn)
 // =========================================================================
 
-// 1. Phải đặt CORS lên đầu tiên để duyệt qua Preflight Request
+// 1. CORS phải đặt trước tất cả (xử lý Preflight Request)
 app.UseCors("AllowReactApp");
 
+// 2. Swagger (chỉ trong môi trường Development, 1 lần duy nhất)
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
     app.UseSwaggerUI();
 }
 
-// 2. Chuyển hướng HTTPS đặt phía dưới CORS ở môi trường dev
+// 3. HTTPS Redirection
 app.UseHttpsRedirection();
 
-// 3. Định tuyến ứng dụng
+// 4. Static Files (phục vụ ảnh, CSS, JS tĩnh)
+app.UseStaticFiles();
+
+// 5. Routing
 app.UseRouting();
 
-app.UseCors("AllowReactApp");
+// 6. Authentication & Authorization
+app.UseAuthentication();
 app.UseAuthorization();
 
-// 5. Ánh xạ các Endpoint Controller
+// 7. Map Controllers
 app.MapControllers();
 
 app.Run();

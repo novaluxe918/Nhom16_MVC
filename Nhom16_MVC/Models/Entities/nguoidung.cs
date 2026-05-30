@@ -29,6 +29,10 @@ public partial class nguoidung
 
     public DateTime? tokenexpiry { get; set; }
 
+    public string? resettoken { get; set; }
+
+    public DateTime? resettokenexpiry { get; set; }
+
     public string trangthai { get; set; } = "hoat_dong";
 
     public virtual ICollection<chat> chatnguoiguiNavigation { get; set; } = new List<chat>();

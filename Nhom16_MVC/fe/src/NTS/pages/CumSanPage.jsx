@@ -9,6 +9,16 @@ const CumSanPage = () => {
     const [sanMe, setSanMe] = useState(null);
     const [isLoading, setIsLoading] = useState(true);
 
+    const SAN_ME_URL = "https://localhost:7295/images/SanMe/";
+    const SAN_CON_URL = "https://localhost:7295/images/SanCon/";
+
+    const resolveImageUrl = (imagePath, folderUrl) => {
+        if (!imagePath) return "https://placehold.co/600x400/e2e8f0/a0aec0?text=No+Image";
+        if (imagePath.includes("link.com")) return `${folderUrl}${imagePath.split('/').pop()}`;
+        if (!imagePath.includes('.')) return `${folderUrl}${imagePath}.jpg`;
+        return `${folderUrl}${imagePath}`;
+    };
+
     useEffect(() => {
         const fetchChiTietSanMe = async () => {
             try {
@@ -88,8 +98,9 @@ const CumSanPage = () => {
                         {/* Render ảnh đầu tiên trong Album, nếu không có thì lấy ảnh mặc định */}
                         <img
                             className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
-                            src={sanMe.albumMedia && sanMe.albumMedia.length > 0 ? sanMe.albumMedia[0] : "https://images.unsplash.com/photo-1574629810360-7efbb1925846"}
+                            src={resolveImageUrl(sanMe.albumMedia?.[0], SAN_ME_URL)}
                             alt={sanMe.tenSan}
+                            onError={(e) => { e.target.onerror = null; e.target.src = "https://placehold.co/800x500?text=San+Me"; }}
                         />
                         <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-60"></div>
                         <div className="absolute bottom-8 left-8 text-white">
@@ -117,8 +128,9 @@ const CumSanPage = () => {
                                     <div className="md:w-1/3 h-64 md:h-auto overflow-hidden relative">
                                         <img
                                             className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-                                            src={sanCon.anhDaiDien || "https://images.unsplash.com/photo-1518605368461-1e1e38ce7058"}
+                                            src={resolveImageUrl(sanCon.anhDaiDien, SAN_CON_URL)}
                                             alt={sanCon.tenSanChiTiet}
+                                            onError={(e) => { e.target.onerror = null; e.target.src = "https://placehold.co/400x300?text=San+Con"; }}
                                         />
                                         <div className="absolute top-4 left-4 bg-primary text-white px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider shadow-md">
                                             {sanCon.loaiSan}
