@@ -43,7 +43,10 @@ namespace Nhom16_MVC.Services
                 DiemTrungBinh = diemTb,
                 TongSoBinhLuan = danhGias.Count,
                 GioHoatDong = $"{sanCon.masanbongNavigation.giomocua:HH:mm} - {sanCon.masanbongNavigation.giodongcua:HH:mm}",
-                AlbumMediaSanCon = sanCon.media_sanbongchitiet.Select(m => m.link).ToList()
+                AlbumMediaSanCon = sanCon.media_sanbongchitiet
+                                         .Where(m => m.loaimedia == "hinh_anh") // Chỉ lấy ảnh, lỡ DB có video thì bỏ qua
+                                         .Select(m => m.mediaid) // Lấy chuẩn tên file ảnh
+                                         .ToList()
             };
         }
 
