@@ -215,12 +215,15 @@ namespace Nhom16_MVC.Services
                     
                     TenSanChiTiet = ds.chitietdatsan.FirstOrDefault().masanchitietNavigation.tensanchitiet,
 
-                    
+
                     HinhAnhSan = ds.chitietdatsan.FirstOrDefault()
                                     .masanchitietNavigation
-                                    .media_sanbongchitiet.FirstOrDefault().mediaid ?? "/placeholder.jpg",
+                                    .media_sanbongchitiet
+                                    .Where(m => m.loaimedia == "hinh_anh") 
+                                    .Select(m => m.mediaid)               
+                                    .FirstOrDefault(),
 
-                    
+
                     DiaChi = ds.chitietdatsan.FirstOrDefault()
                                 .masanchitietNavigation
                                 .masanbongNavigation.thanhpho ?? "Đà Nẵng"

@@ -64,7 +64,13 @@ const LichSuDatSanPage = () => {
                             khungGio: `${don.gioBatDau} - ${don.gioKetThuc}`,
                             tongTien: don.soTienThanhToan,
                             daThanhToan: true,
-                            hinhAnh: don.hinhAnhSan || '/placeholder.jpg',
+                            hinhAnh: (() => {
+                                const path = don.hinhAnhSan;
+                                if (!path) return "https://placehold.co/400x300/e2e8f0/a0aec0?text=No+Image";
+                                if (path.includes("link.com")) return `https://localhost:7295/images/SanCon/${path.split('/').pop()}`;
+                                if (!path.includes('.')) return `https://localhost:7295/images/SanCon/${path}.jpg`;
+                                return `https://localhost:7295/images/SanCon/${path}`;
+                            })(),
                             hoanTien: mappedTrangThai === 'da_huy' ? '100%' : null
                         };
                     });
@@ -184,7 +190,12 @@ const LichSuDatSanPage = () => {
                         {donSapToiList.map(don => (
                             <div key={don.id} className="bg-surface-container-lowest rounded-[2rem] overflow-hidden transition-all duration-300 hover:shadow-xl hover:shadow-primary/5 flex flex-col md:flex-row border border-outline-variant/10">
                                 <div className="md:w-2/5 relative h-64 md:h-auto overflow-hidden">
-                                    <img src={don.hinhAnh} alt="Sân" className="w-full h-full object-cover transition-transform duration-500 hover:scale-105" />
+                                    <img
+                                        src={don.hinhAnh}
+                                        alt="Sân"
+                                        className="w-full h-full object-cover transition-transform duration-500 hover:scale-105"
+                                        onError={(e) => { e.target.onerror = null; e.target.src = "https://placehold.co/400x300?text=Loi+Anh"; }}
+                                    />
                                     <div className="absolute top-4 left-4 bg-primary-container text-on-primary-container px-4 py-1.5 rounded-full font-bold text-xs uppercase tracking-widest shadow-lg">Sắp tới</div>
                                 </div>
                                 <div className="md:w-3/5 p-6 md:p-8 flex flex-col justify-between">

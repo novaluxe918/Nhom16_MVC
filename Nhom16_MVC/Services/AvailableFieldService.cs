@@ -52,15 +52,17 @@ public class AvailableFieldService
             // Lấy tất cả sân bóng với thông tin đánh giá
 
             //  TẠO KHUNG LEGO CƠ BẢN: Lấy các sân đã duyệt
+            
             var query = _context.sanbong
                 .Include(s => s.sanbongchitiet)
                     .ThenInclude(sc => sc.maloaisanNavigation)
                 .Include(s => s.sanbongchitiet)
                     .ThenInclude(sc => sc.danhgia)
+                .Include(s => s.media_sanbong) 
                 .Where(s => s.daduyet == true)
-                .AsQueryable(); 
+                .AsQueryable();
 
-            // LẮP RÁP CÁC ĐIỀU KIỆN LỌC 
+     
 
             // - Nếu người dùng có chọn lọc theo Tên Sân 
             if (!string.IsNullOrWhiteSpace(request.TenSan))
@@ -150,7 +152,8 @@ public class AvailableFieldService
                             // Thông tin sân mẹ (gắn kèm)
                             MaSanBong = sanbong.masanbong,
                             TenSan = sanbong.tensan,
-                            HinhAnh = sanbong.hinhanh,
+                            
+                            HinhAnh = sanbong.media_sanbong.FirstOrDefault(m => m.loaimedia == "hinh_anh")?.mediaid,
                             DiaChi = sanbong.diachi,
                             Quan = sanbong.quan,
                             Huyen = sanbong.huyen,

@@ -2,6 +2,28 @@ import { Link } from 'react-router-dom';
 import { MapPin } from 'lucide-react';
 
 const FeaturedPitches = ({ sanBongs, isLoading, viewMode }) => {
+
+    const SAN_ME_URL = "https://localhost:7295/images/SanMe/";
+    const SAN_CON_URL = "https://localhost:7295/images/SanCon/";
+    const resolveImageUrl = (imagePath, folderUrl) => {
+        if (!imagePath) return "https://placehold.co/600x400/e2e8f0/a0aec0?text=No+Image";
+
+        // 1. Trị bệnh "Link Fake" (Nếu C# trả về https://link.com/sb1.jpg)
+        if (imagePath.includes("link.com")) {
+            // Lệnh này cắt chuỗi, chỉ lấy phần đuôi cuối cùng (ra được chữ: sb1.jpg hoặc sbc1.jpg)
+            const fileName = imagePath.split('/').pop();
+            return `${folderUrl}${fileName}`;
+        }
+
+        // 2. Trị bệnh "Thiếu đuôi ảnh" (Nếu C# trả về img_sb1_01 từ cột mediaid)
+        if (!imagePath.includes('.')) {
+            // Tự động nhét thêm .jpg vào đằng sau
+            return `${folderUrl}${imagePath}.jpg`;
+        }
+
+        // 3. Dành cho dữ liệu đã chuẩn (Nếu C# trả về img_sb1_01.jpg)
+        return `${folderUrl}${imagePath}`;
+    };
     return (
         <section className="px-10 mb-10">
             <div className="flex justify-between items-center mb-6 border-b pb-4">
@@ -25,7 +47,12 @@ const FeaturedPitches = ({ sanBongs, isLoading, viewMode }) => {
                             // ================= GIAO DIỆN THẺ SÂN MẸ =================
                             <div key={san.maSanBong} className="bg-white rounded-3xl shadow-sm hover:shadow-xl transition-all duration-300 border border-gray-100 overflow-hidden flex flex-col">
                                 <div className="relative h-56 bg-gray-200 p-2">
-                                    <img src={san.albumMedia?.[0] || "/default-pitch.jpg"} alt={san.tenSan} className="w-full h-full object-cover rounded-2xl" />
+                                    <img
+                                        src={resolveImageUrl(san.albumMedia?.[0], SAN_ME_URL)}
+                                        alt={san.tenSan}
+                                        className="w-full h-full object-cover rounded-2xl"
+                                        onError={(e) => { e.target.onerror = null; e.target.src = "https://placehold.co/600x400/e2e8f0/a0aec0?text=San+Me"; }}
+                                    />
                                     <div className="absolute bottom-4 right-4 bg-[#006b0a] text-white text-[10px] font-bold px-3 py-1.5 rounded-full shadow-md">
                                         {san.soLuongSanCon} sân con
                                     </div>
@@ -53,7 +80,12 @@ const FeaturedPitches = ({ sanBongs, isLoading, viewMode }) => {
                             // ================= GIAO DIỆN THẺ SÂN CON (Code cũ giữ nguyên) =================
                             <div key={san.maSanChiTiet} className="bg-white rounded-3xl shadow-sm hover:shadow-xl transition-all duration-300 border border-gray-100 overflow-hidden flex flex-col">
                                 <div className="relative h-56 bg-gray-200">
-                                    <img src={san.hinhAnh} alt={san.tenSan} className="w-full h-full object-cover" />
+                                        <img
+                                            src={resolveImageUrl(san.hinhAnh, SAN_CON_URL)}
+                                            alt={san.tenSan}
+                                            className="w-full h-full object-cover"
+                                            onError={(e) => { e.target.onerror = null; e.target.src = "https://placehold.co/600x400/e2e8f0/a0aec0?text=San+Con"; }}
+                                        />
                                     <div className="absolute top-4 left-4 flex gap-2">
                                         <span className="bg-[#006b0a] text-white text-xs font-bold px-4 py-1.5 rounded-full uppercase">{san.loaiSan}</span>
                                         <span className="bg-white text-[#2c2f2e] text-xs font-bold px-3 py-1.5 rounded-full flex items-center">⭐ {san.soSaoDanhGia}</span>
