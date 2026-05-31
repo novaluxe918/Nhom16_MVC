@@ -8,6 +8,14 @@ const ChiTietSanPage = () => {
     const { id } = useParams();
     const navigate = useNavigate();
 
+    const SAN_CON_URL = "https://localhost:7295/images/SanCon/";
+    const resolveImageUrl = (imagePath, folderUrl) => {
+        if (!imagePath) return "https://placehold.co/600x400/e2e8f0/a0aec0?text=No+Image";
+        if (imagePath.includes("link.com")) return `${folderUrl}${imagePath.split('/').pop()}`;
+        if (!imagePath.includes('.')) return `${folderUrl}${imagePath}.jpg`;
+        return `${folderUrl}${imagePath}`;
+    };
+
     // 1. Quản lý State
     const [sanCon, setSanCon] = useState(null);
     const [danhGia, setDanhGia] = useState([]);
@@ -181,7 +189,12 @@ const ChiTietSanPage = () => {
                 {/* ================= HERO & GALLERY ================= */}
                 <section className="grid grid-cols-1 lg:grid-cols-12 gap-6 mb-12">
                     <div className="lg:col-span-8 group relative overflow-hidden rounded-xl h-[400px] md:h-[500px]">
-                        <img src={sanCon.albumMediaSanCon?.[0] || "/placeholder.jpg"} alt={sanCon.tenSanChiTiet} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" />
+                        <img
+                            src={resolveImageUrl(sanCon.albumMediaSanCon?.[0], SAN_CON_URL)}
+                            alt={sanCon.tenSanChiTiet}
+                            className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+                            onError={(e) => { e.target.onerror = null; e.target.src = "https://placehold.co/800x500?text=San+Con+1"; }}
+                        />
                         <div className="absolute top-6 left-6 flex gap-2">
                             <span className="bg-white/90 backdrop-blur text-primary px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1 shadow-lg">
                                 ⭐ {sanCon.diemTrungBinh} ({sanCon.tongSoBinhLuan} reviews)
@@ -190,10 +203,20 @@ const ChiTietSanPage = () => {
                     </div>
                     <div className="lg:col-span-4 grid grid-cols-2 lg:grid-cols-1 gap-4">
                         <div className="rounded-xl overflow-hidden h-[192px] md:h-full lg:h-[242px]">
-                            <img src={sanCon.albumMediaSanCon?.[1] || "/placeholder.jpg"} className="w-full h-full object-cover" alt="Ảnh sân" />
+                            <img
+                                src={resolveImageUrl(sanCon.albumMediaSanCon?.[1], SAN_CON_URL)}
+                                className="w-full h-full object-cover"
+                                alt="Ảnh sân 2"
+                                onError={(e) => { e.target.onerror = null; e.target.src = "https://placehold.co/400x300?text=San+Con+2"; }}
+                            />
                         </div>
                         <div className="rounded-xl overflow-hidden h-[192px] md:h-full lg:h-[242px] relative">
-                            <img src={sanCon.albumMediaSanCon?.[2] || "/placeholder.jpg"} className="w-full h-full object-cover" alt="Ảnh sân" />
+                            <img
+                                src={resolveImageUrl(sanCon.albumMediaSanCon?.[2], SAN_CON_URL)}
+                                className="w-full h-full object-cover"
+                                alt="Ảnh sân 3"
+                                onError={(e) => { e.target.onerror = null; e.target.src = "https://placehold.co/400x300?text=San+Con+3"; }}
+                            />
                         </div>
                     </div>
                 </section>

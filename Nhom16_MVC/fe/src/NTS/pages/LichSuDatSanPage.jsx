@@ -20,18 +20,25 @@ const LichSuDatSanPage = () => {
     const [isLoading, setIsLoading] = useState(true);
     const [activeTab, setActiveTab] = useState('tat_ca'); 
     // 2. GỌI API LẤY LỊCH SỬ ĐẶT SÂN TỪ BACKEND
+    // 2. GỌI API LẤY LỊCH SỬ ĐẶT SÂN TỪ BACKEND
     useEffect(() => {
         const fetchLichSu = async () => {
+            // 1. Lấy dữ liệu từ kho (Chỉ khai báo 1 lần duy nhất)
             const token = localStorage.getItem('token');
-            if (!token) {
+
+            const userId = localStorage.getItem('userId');
+
+            // 2. Kiểm tra an toàn
+            if (!token || !userId || userId === 'undefined' || userId === 'null') {
+                console.error("Không tìm thấy ID hoặc Token. Vui lòng đăng nhập lại!");
                 alert("Vui lòng đăng nhập để xem lịch sử đặt sân!");
                 navigate('/login');
                 return;
             }
 
             try {
-                
-                const response = await axios.get('https://localhost:7295/api/DatSan/lich-su', {
+                // 3. Gọi API với biến userId đã có
+                const response = await axios.get(`https://localhost:7295/api/DatSan/lich-su/${userId}`, {
                     headers: { Authorization: `Bearer ${token}` }
                 });
 
@@ -39,16 +46,13 @@ const LichSuDatSanPage = () => {
                     const now = new Date(); // Lấy thời gian hiện tại
 
                     const mappedData = response.data.data.map(don => {
-                        // 1. Tính toán thời gian bắt đầu đá
+                        // Tính toán thời gian bắt đầu đá
                         const bookingTime = parseDateTime(don.ngayDat, don.gioBatDau);
-
-                        // 2. Phân loại trạng thái dựa vào đồng hồ
                         let mappedTrangThai = 'sap_toi';
 
                         if (don.trangThai === 'da_huy' || don.trangThai === 'Huy') {
                             mappedTrangThai = 'da_huy';
                         } else if (bookingTime <= now) {
-                            // Nếu thời gian đá đã qua so với hiện tại -> Đẩy vào Hoàn thành
                             mappedTrangThai = 'hoan_thanh';
                         }
 
@@ -56,15 +60,21 @@ const LichSuDatSanPage = () => {
                             id: don.maDatSan,
                             maSanChiTiet: don.maSanChiTiet || don.MaSanChiTiet,
                             trangThai: mappedTrangThai,
-                            rawNgayDat: don.ngayDat,     // Giữ lại dữ liệu thô để dùng cho chức năng hủy
-                            rawGioBatDau: don.gioBatDau, // Giữ lại dữ liệu thô
+                            rawNgayDat: don.ngayDat,
+                            rawGioBatDau: don.gioBatDau,
                             tenSan: don.tenSanChiTiet || 'Sân bóng',
                             diaChi: don.diaChi || 'Đà Nẵng',
                             ngayDa: don.ngayDat,
                             khungGio: `${don.gioBatDau} - ${don.gioKetThuc}`,
                             tongTien: don.soTienThanhToan,
                             daThanhToan: true,
-                            hinhAnh: don.hinhAnhSan || '/placeholder.jpg',
+                            hinhAnh: (() => {
+                                const path = don.hinhAnhSan;
+                                if (!path) return "https://placehold.co/400x300/e2e8f0/a0aec0?text=No+Image";
+                                if (path.includes("link.com")) return `https://localhost:7295/images/SanCon/${path.split('/').pop()}`;
+                                if (!path.includes('.')) return `https://localhost:7295/images/SanCon/${path}.jpg`;
+                                return `https://localhost:7295/images/SanCon/${path}`;
+                            })(),
                             hoanTien: mappedTrangThai === 'da_huy' ? '100%' : null
                         };
                     });
@@ -184,7 +194,12 @@ const LichSuDatSanPage = () => {
                         {donSapToiList.map(don => (
                             <div key={don.id} className="bg-surface-container-lowest rounded-[2rem] overflow-hidden transition-all duration-300 hover:shadow-xl hover:shadow-primary/5 flex flex-col md:flex-row border border-outline-variant/10">
                                 <div className="md:w-2/5 relative h-64 md:h-auto overflow-hidden">
-                                    <img src={don.hinhAnh} alt="Sân" className="w-full h-full object-cover transition-transform duration-500 hover:scale-105" />
+                                    <img
+                                        src={don.hinhAnh}
+                                        alt="Sân"
+                                        className="w-full h-full object-cover transition-transform duration-500 hover:scale-105"
+                                        onError={(e) => { e.target.onerror = null; e.target.src = "https://placehold.co/400x300?text=Loi+Anh"; }}
+                                    />
                                     <div className="absolute top-4 left-4 bg-primary-container text-on-primary-container px-4 py-1.5 rounded-full font-bold text-xs uppercase tracking-widest shadow-lg">Sắp tới</div>
                                 </div>
                                 <div className="md:w-3/5 p-6 md:p-8 flex flex-col justify-between">
@@ -249,13 +264,21 @@ const LichSuDatSanPage = () => {
                                     {don.trangThai === 'da_huy' ? (
                                         <span className="text-xs italic text-error font-medium">Hoàn tiền {don.hoanTien}</span>
                                     ) : (
-                                        <Link
-                                            to={`/danh-gia/${don.maSanChiTiet}`}
-                                            className="px-4 py-2 rounded-full bg-primary text-white font-bold hover:bg-primary-dim transition-all shadow-md active:scale-95 text-xs flex items-center gap-1"
-                                        >
-                                            <span className="material-symbols-outlined text-[14px]">rate_review</span>
-                                            Đánh giá
-                                        </Link>
+                                         <Link
+                                              to={`/danh-gia/${don.maSanChiTiet}`}
+                                              state={{
+                                              don: {
+                                                    tenSan: don.tenSan,
+                                                     ngayDa: don.ngayDa,
+                                                     khungGio: don.khungGio,
+                                                     hinhAnh: don.hinhAnh
+                                                   }
+                                              }}
+                                              className="px-4 py-2 rounded-full bg-primary text-white font-bold hover:bg-primary-dim transition-all shadow-md active:scale-95 text-xs flex items-center gap-1"
+                                         >
+                                              <span className="material-symbols-outlined text-[14px]">rate_review</span>
+                                                Đánh giá
+                                         </Link>
                                     )}
                                 </div>
                             </div>

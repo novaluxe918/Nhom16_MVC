@@ -18,7 +18,7 @@ namespace Nhom16_MVC.Controllers
         [HttpGet("lich-su/{userId}")]
         public async Task<IActionResult> GetLichSuCuaToi(int userId)
         {
-            
+
 
             var result = await _bookingService.GetLichSuDatSanAsync(userId);
 

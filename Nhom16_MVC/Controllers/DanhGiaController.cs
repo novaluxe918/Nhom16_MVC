@@ -29,13 +29,13 @@ namespace Nhom16_MVC.Controllers
         [HttpPost("gui-danh-gia")]
         public async Task<IActionResult> PostDanhGia([FromBody] DanhGiaRequestDto request)
         {
-            //var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            //if (string.IsNullOrEmpty(userIdClaim)) return Unauthorized(new { Success = false, Message = "Chưa đăng nhập" });
-            //int maNguoiDungDangNhap = int.Parse(userIdClaim);
+            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(userIdClaim)) return Unauthorized(new { Success = false, Message = "Chưa đăng nhập" });
+            int maNguoiDungDangNhap = int.Parse(userIdClaim);
 
-            ////////////////////////////////////////////////////////
+            
 
-            int maNguoiDungDangNhap = 2;
+           
 
             var result = await _danhGiaService.LuuDanhGiaCuaKhachAsync(maNguoiDungDangNhap, request);
 

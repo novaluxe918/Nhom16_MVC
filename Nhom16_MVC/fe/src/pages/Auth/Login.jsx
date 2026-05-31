@@ -1,4 +1,4 @@
-﻿import React, { useState } from 'react';
+﻿import  { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Mail, Lock, Eye, EyeOff } from 'lucide-react';
 import './Auth.css';
@@ -33,9 +33,11 @@ export default function Login() {
             }
 
             const result = await response.json();
+            console.log("Full login response:", result);
 
             if (response.ok && result.success) {
                 localStorage.setItem('token', result.token);
+                localStorage.setItem('userId', result.userId);
                 localStorage.setItem('userEmail', email.trim());
                 localStorage.setItem('userHoTen', result.hoTen);
                 localStorage.setItem('userVaiTro', result.vaiTro);
@@ -44,11 +46,11 @@ export default function Login() {
 
                 // CẬP NHẬT LUỒNG ĐIỀU HƯỚNG THÔNG MINH:
                 if (result.vaiTro === 'admin') {
-                    navigate('/admin'); // Hoặc đường dẫn Dashboard quản trị của bạn (Ví dụ: /admin/dashboard)
+                    navigate('/admin'); 
                 } else if (result.vaiTro === 'chuSan') {
                     navigate('/quan-ly-san');
                 } else {
-                    navigate('/'); // Khách thuê di chuyển về trang chủ xem danh sách sân
+                    navigate('/'); 
                 }
             } else {
                 alert(result.message || "Tài khoản hoặc mật khẩu không chính xác.");
