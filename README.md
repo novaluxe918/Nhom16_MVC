@@ -1,16 +1,5 @@
 # Nhom16 - Hệ thống quản lý sân bóng tại Đà Nẵng
 
-## Giới thiệu
-Dự án xây dựng hệ thống quản lý sân bóng hỗ trợ:
-- Quản lý sân bóng
-- Đặt sân online
-- Quản lý bảng giá
-- Quản lý đơn đặt sân
-- Thống kê doanh thu
-- Đánh giá sân bóng
-
----
-
 ## Thành viên thực hiện
 - Phan Công Phước
 - Phan Mai Hoài Nhi
@@ -30,8 +19,12 @@ Dự án xây dựng hệ thống quản lý sân bóng hỗ trợ:
 - Entity Framework Core
 - PostgreSQL
 
+## Chạy Backend
+- cd Nhom16_MVC
+- dotnet run
 ---
 ## Chạy Frontend
+- cd Nhom16_MVC
 - cd fe
 - npm install
 - npm run dev
