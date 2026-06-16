@@ -4,7 +4,7 @@ using Nhom16_MVC.Models.DTOs;
 using Nhom16_MVC.Services;
 using System.Threading.Tasks;
 
-namespace Nhom16_MVC.Controllers.API
+namespace Nhom16_MVC.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]

@@ -5,6 +5,9 @@ using Nhom16_MVC.Data;
 using Nhom16_MVC.Helpers;
 using Nhom16_MVC.Models.Enums;
 using Nhom16_MVC.Services;
+using Nhom16_MVC.Services.Interfaces;
+using Nhom16_MVC.Repositories;
+using Nhom16_MVC.Repositories.Interfaces;
 using Npgsql;
 using Npgsql.NameTranslation;
 using System.Text;
@@ -49,6 +52,10 @@ builder.Services.AddScoped<UserManagementService>();
 builder.Services.AddScoped<StadiumManagementService>();
 builder.Services.AddScoped<RatingManagementService>();
 builder.Services.AddScoped<FinancialManagementService>();
+builder.Services.AddScoped<IBangGiaService, BangGiaService>();
+builder.Services.AddScoped<IBangGiaRepository, BangGiaRepository>();
+builder.Services.AddScoped<IDatSanService, DatSanService>();
+builder.Services.AddScoped<IDatSanRepository, DatSanRepository>();
 
 // =========================
 // JWT Authentication
